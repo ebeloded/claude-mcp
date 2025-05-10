@@ -1,8 +1,20 @@
 {
   "name": "mcp-server",
   "version": "1.0.0",
+  "description": "A minimal MCP server scaffolded with the Model Context Protocol TypeScript SDK.",
+  "author": "Evgenij (Eugene) Beloded <belodedevgenij@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ebeloded/claude-mcp.git"
+  },
+  "homepage": "https://github.com/ebeloded/claude-mcp#readme",
+  "keywords": ["mcp", "llm", "server", "context", "typescript"],
   "type": "module",
-  "main": "server.js",
+  "main": "dist/server.js", 
+  "module": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
