@@ -1,7 +1,7 @@
 {
-  "name": "mcp-server",
+  "name": "claude-mcp",
   "version": "1.0.0",
-  "description": "A minimal MCP server scaffolded with the Model Context Protocol TypeScript SDK.",
+  "description": "An MCP server that allows AI tools to interact with Claude Code programmatically with session continuity.",
   "author": "Evgenij (Eugene) Beloded <belodedevgenij@gmail.com>",
   "license": "MIT",
   "repository": {
@@ -9,16 +9,19 @@
     "url": "https://github.com/ebeloded/claude-mcp.git"
   },
   "homepage": "https://github.com/ebeloded/claude-mcp#readme",
-  "keywords": ["mcp", "llm", "server", "context", "typescript"],
+  "keywords": ["mcp", "llm", "server", "context", "claude", "agent"],
   "type": "module",
-  "main": "dist/server.js", 
-  "module": "dist/server.js",
-  "types": "dist/server.d.ts",
-  "files": ["dist", "README.md", "LICENSE"],
+  "main": "server.js",
+  "bin": {
+    "claude-mcp": "./server.js"
+  },
+  "files": ["server.js", "README.md", "LICENSE"],
   "scripts": {
-    "start": "node dist/server.js",
-    "build": "tsc",
+    "start": "node server.js",
     "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
