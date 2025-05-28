@@ -1,6 +1,6 @@
 {
   "name": "claude-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An MCP server that allows AI tools to interact with Claude Code programmatically with session continuity.",
   "author": "Evgenij (Eugene) Beloded <belodedevgenij@gmail.com>",
   "license": "MIT",
