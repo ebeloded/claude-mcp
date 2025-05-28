@@ -134,7 +134,7 @@ server.tool(
     sessionId: z
       .string()
       .optional()
-      .describe("Optional session ID to resume a previous conversation"),
+      .describe("Optional session ID to resume a previous conversation. Note: Claude generates a new session ID for each response, but can still access previous conversation history when this parameter is provided."),
   },
   async ({ prompt, sessionId }) => {
     try {
@@ -144,7 +144,7 @@ server.tool(
         content: [
           {
             type: "text",
-            text: JSON.stringify(result, null, 2),
+            text: `${result.result}\n\nSession ID: ${result.session_id}`,
           },
         ],
       };

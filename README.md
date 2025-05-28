@@ -8,30 +8,48 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 
 ## Features
 
-- **Single `claude_execute` tool** for executing prompts via Claude Code
+- **Simple `ask` tool** for executing prompts via Claude Code
 - **Session management** - Resume previous conversations using session IDs
 - **Robust CLI detection** - Automatically finds Claude Code installation
 - **Permission bypass** - Uses `--dangerously-skip-permissions` for full functionality
 - **Environment configuration** - Customizable via environment variables
 - **Debug logging** - Optional verbose logging for troubleshooting
+- **Automated publishing** - GitHub Actions workflow for releases
 
 ## Prerequisites
 
-- Node.js/Bun runtime
+- Node.js 18+ runtime
 - Claude Code CLI installed and configured
 - Claude Code must be run once with `--dangerously-skip-permissions` to accept terms
 
 ## Installation & Setup
 
-### Option 1: NPX (Recommended)
+### Option 1: NPM Global Install (Recommended)
 
-No installation required! Use directly with npx:
+```bash
+npm install -g claude-mcp
+```
+
+Then use in your MCP config:
 
 ```json
 {
   "mcpServers": {
     "claude": {
-      "type": "stdio", 
+      "command": "claude-mcp"
+    }
+  }
+}
+```
+
+### Option 2: NPX (No Installation)
+
+Use directly with npx:
+
+```json
+{
+  "mcpServers": {
+    "claude": {
       "command": "npx",
       "args": ["claude-mcp"]
     }
@@ -39,7 +57,7 @@ No installation required! Use directly with npx:
 }
 ```
 
-### Option 2: Local Development
+### Option 3: Local Development
 
 1. **Clone and install:**
    ```bash
@@ -53,7 +71,6 @@ No installation required! Use directly with npx:
    {
      "mcpServers": {
        "claude": {
-         "type": "stdio",
          "command": "node",
          "args": ["/path/to/claude-mcp/server.js"]
        }
@@ -87,7 +104,7 @@ Choose one of the installation options above and add the corresponding configura
 
 ## Tools
 
-### `claude_execute`
+### `ask`
 
 Execute prompts via Claude Code with optional session continuity.
 
@@ -98,13 +115,13 @@ Execute prompts via Claude Code with optional session continuity.
 **Example:**
 ```javascript
 // First execution
-mcp__claude__claude_execute({ 
-  prompt: "List the files in this directory" 
+ask({ 
+  prompt: "What's 2 + 2?" 
 })
 
 // Continue conversation
-mcp__claude__claude_execute({ 
-  prompt: "Now show me the contents of server.ts",
+ask({ 
+  prompt: "Now multiply that by 3",
   sessionId: "938c8c6d-1897-4ce4-a727-d001a628a279"
 })
 ```
@@ -114,11 +131,13 @@ mcp__claude__claude_execute({
 {
   "type": "result",
   "subtype": "success", 
-  "result": "Command output here",
-  "session_id": "uuid-for-continuation",
+  "result": "4",
+  "session_id": "938c8c6d-1897-4ce4-a727-d001a628a279",
   "cost_usd": 0.015,
   "duration_ms": 4742,
-  "is_error": false
+  "num_turns": 1,
+  "is_error": false,
+  "total_cost": 0.015
 }
 ```
 
@@ -138,9 +157,8 @@ Set `MCP_CLAUDE_DEBUG=true` to enable verbose logging:
 {
   "mcpServers": {
     "claude": {
-      "type": "stdio", 
-      "command": "bun",
-      "args": ["/path/to/claude-mcp/server.ts"],
+      "command": "node",
+      "args": ["/path/to/claude-mcp/server.js"],
       "env": {
         "MCP_CLAUDE_DEBUG": "true"
       }
@@ -149,21 +167,37 @@ Set `MCP_CLAUDE_DEBUG=true` to enable verbose logging:
 }
 ```
 
-## Use Cases
+## Publishing
 
-- **Agent-in-agent workflows** - Let AI tools delegate complex tasks to Claude Code
-- **File operations** - Reading, writing, editing files through Claude Code's tools
-- **Code analysis** - Leverage Claude Code's programming capabilities
-- **System interactions** - Execute shell commands, git operations, etc.
-- **Multi-step workflows** - Maintain conversation context across multiple operations
+This project uses GitHub Actions for automated publishing:
 
-## Troubleshooting
-
-- **"Command not found"**: Ensure Claude Code CLI is installed and in PATH
-- **Hanging requests**: Check that `--dangerously-skip-permissions` was accepted
-- **Permission errors**: Verify Claude Code runs manually with the same flags
-- **Path issues**: Use `CLAUDE_CLI_NAME` environment variable for custom paths
+- **Releases**: Create a GitHub release to automatically publish to npm
+- **Manual**: Use the "Publish to npm" workflow dispatch for manual publishing
 
 ## License
 
 MIT
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## Troubleshooting
+
+### Claude CLI Not Found
+- Ensure Claude CLI is installed and in your PATH
+- Set `CLAUDE_CLI_NAME` environment variable if using a custom binary name
+- Check that the CLI works: `claude --version`
+
+### Permission Errors
+- Run `claude --dangerously-skip-permissions` once to accept terms
+- Ensure the MCP server has permission to execute the Claude CLI
+
+### Session Continuity Issues
+- Session IDs are returned in the response - save them for continuation
+- Sessions may expire after extended periods of inactivity
+- Each new conversation without a sessionId starts fresh
