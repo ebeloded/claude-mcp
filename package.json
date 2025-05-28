@@ -1,6 +1,6 @@
 {
   "name": "claude-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An MCP server that allows AI tools to interact with Claude Code programmatically with session continuity.",
   "author": "Evgenij (Eugene) Beloded <belodedevgenij@gmail.com>",
   "license": "MIT",
@@ -9,13 +9,24 @@
     "url": "https://github.com/ebeloded/claude-mcp.git"
   },
   "homepage": "https://github.com/ebeloded/claude-mcp#readme",
-  "keywords": ["mcp", "llm", "server", "context", "claude", "agent"],
+  "keywords": [
+    "mcp",
+    "llm",
+    "server",
+    "context",
+    "claude",
+    "agent"
+  ],
   "type": "module",
   "main": "server.js",
   "bin": {
     "claude-mcp": "./server.js"
   },
-  "files": ["server.js", "README.md", "LICENSE"],
+  "files": [
+    "server.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "node server.js",
     "test": "vitest run"
