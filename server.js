@@ -128,7 +128,7 @@ async function executeClaudeCode(prompt, sessionId) {
 
 // Add Claude Code execution tool
 server.tool(
-  "claude_execute",
+  "claude_code",
   {
     prompt: z.string().describe("The prompt to send to Claude Code"),
     sessionId: z
@@ -163,72 +163,6 @@ server.tool(
     }
   }
 );
-
-// Add version tool for testing
-server.tool("claude_version", {}, async () => {
-  try {
-    const claudePath = findClaudeCli();
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Version check timed out"));
-      }, 5000);
-
-      const claudeProcess = spawn(claudePath, ["--version"], {
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-
-      let stdout = "";
-      let stderr = "";
-
-      claudeProcess.stdout?.on("data", (data) => {
-        stdout += data.toString();
-      });
-
-      claudeProcess.stderr?.on("data", (data) => {
-        stderr += data.toString();
-      });
-
-      claudeProcess.on("close", (code) => {
-        clearTimeout(timeout);
-        if (code === 0) {
-          resolve({
-            content: [
-              { type: "text", text: `Claude version: ${stdout.trim()}` },
-            ],
-          });
-        } else {
-          resolve({
-            content: [
-              {
-                type: "text",
-                text: `Error: Exit code ${code}, stderr: ${stderr}`,
-              },
-            ],
-          });
-        }
-      });
-
-      claudeProcess.on("error", (error) => {
-        clearTimeout(timeout);
-        resolve({
-          content: [{ type: "text", text: `Spawn error: ${error.message}` }],
-        });
-      });
-    });
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Exception: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      ],
-    };
-  }
-});
 
 // Start the server over stdio
 const transport = new StdioServerTransport();
