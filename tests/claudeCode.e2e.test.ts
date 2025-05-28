@@ -5,7 +5,7 @@ import { join } from 'path';
 
 const SERVER_PATH = join(__dirname, '../server.js');
 
-describe('claude_code tool (E2E)', () => {
+describe('ask tool (E2E)', () => {
   it('executes a simple prompt and returns structured response', async () => {
     // Let the StdioClientTransport spawn the server process
     const transport = new StdioClientTransport({
@@ -15,9 +15,9 @@ describe('claude_code tool (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call the claude_code tool with a simple prompt
+    // Call the ask tool with a simple prompt
     const result = await client.callTool({ 
-      name: 'claude_code', 
+      name: 'ask', 
       arguments: { prompt: 'What is 2 + 2? Just respond with the number.' } 
     });
     
@@ -60,7 +60,7 @@ describe('claude_code tool (E2E)', () => {
 
     // First call to establish a session
     const firstResult = await client.callTool({ 
-      name: 'claude_code', 
+      name: 'ask', 
       arguments: { prompt: 'Remember the number 42. Just say "remembered 42".' } 
     });
     
@@ -81,7 +81,7 @@ describe('claude_code tool (E2E)', () => {
 
       // Second call with session resumption
       const secondResult = await client.callTool({ 
-        name: 'claude_code', 
+        name: 'ask', 
         arguments: { 
           prompt: 'What number did I ask you to remember?', 
           sessionId: sessionId 
@@ -116,7 +116,7 @@ describe('claude_code tool (E2E)', () => {
 
     // Call with invalid session ID to trigger an error
     const result = await client.callTool({ 
-      name: 'claude_code', 
+      name: 'ask', 
       arguments: { 
         prompt: 'test', 
         sessionId: 'invalid-session-id-that-does-not-exist' 

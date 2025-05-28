@@ -128,7 +128,7 @@ async function executeClaudeCode(prompt, sessionId) {
 
 // Add Claude Code execution tool
 server.tool(
-  "claude_code",
+  "ask",
   {
     prompt: z.string().describe("The prompt to send to Claude Code"),
     sessionId: z
