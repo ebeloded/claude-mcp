@@ -66,6 +66,25 @@ Uses `previousResponseId` parameter (not "sessionId") because:
 - `MCP_CLAUDE_DEBUG=true` - Enable verbose logging to stderr
 - `CLAUDE_CLI_NAME` - Override Claude CLI binary name/path (defaults to "claude")
 
+### Working with Git Worktrees
+
+When tasking agents to work on experimental features or refactoring:
+
+1. **Create a worktree first**: Use `git worktree add ../project-name-feature -b feature/branch-name`
+2. **Task agents with specific working directory**: Always specify the worktree path as `workingDirectory` parameter
+3. **Agent isolation**: Each agent should work in its own worktree to avoid conflicts
+4. **Commit in worktree**: Agents should commit their changes within the worktree before completion
+5. **Merge back**: Review and merge changes back to main branch when ready
+
+**Example workflow**:
+```bash
+# Create worktree
+git worktree add ../claude-mcp-refactor -b refactor/improvements
+
+# Task agent with specific working directory
+# Use workingDirectory: "/Users/username/Code/claude-mcp-refactor"
+```
+
 ### Key Implementation Details
 
 - Uses ES modules (`"type": "module"`)
