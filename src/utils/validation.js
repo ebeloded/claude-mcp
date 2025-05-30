@@ -9,6 +9,8 @@ import { logger } from "./logger.js";
 
 /**
  * Validate and resolve working directory
+ * @param {string|null|undefined} workingDirectory
+ * @returns {string}
  */
 export function validateWorkingDirectory(workingDirectory) {
   if (!workingDirectory) {
