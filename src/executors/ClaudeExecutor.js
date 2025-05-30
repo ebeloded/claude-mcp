@@ -181,7 +181,7 @@ export class ClaudeExecutor {
       throw new Error(`Task ${taskId} not found`);
     }
 
-    taskManager.updateTask(taskId, { status: 'running', progress: 10 });
+    taskManager.updateTask(taskId, { status: 'running' });
 
     const claudePath = this.findClaudeCli();
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
@@ -221,12 +221,9 @@ export class ClaudeExecutor {
           const message = JSON.parse(line);
           if (message.type === 'result') {
             lastResult = message;
-            taskManager.updateTask(taskId, { progress: 90 });
+            // Progress update removed - we can't accurately measure Claude Code progress
           } else if (message.type === 'assistant' || message.type === 'user') {
-            const currentTask = taskManager.getTask(taskId);
-            if (currentTask) {
-              taskManager.updateTask(taskId, { progress: Math.min(currentTask.progress + 10, 80) });
-            }
+            // Progress tracking removed - we don't have reliable progress info
           }
         } catch (parseError) {
           // Ignore parse errors for partial JSON
@@ -276,14 +273,12 @@ export class ClaudeExecutor {
           }
           taskManager.updateTask(taskId, { 
             status: 'completed', 
-            progress: 100, 
             result,
             process: null 
           });
         } catch (error) {
           taskManager.updateTask(taskId, { 
             status: 'failed', 
-            progress: 100,
             error: `Failed to parse Claude response: ${error instanceof Error ? error.message : String(error)}\nOutput: ${stdout}`,
             process: null
           });
@@ -291,7 +286,6 @@ export class ClaudeExecutor {
       } else {
         taskManager.updateTask(taskId, { 
           status: 'failed', 
-          progress: 100,
           error: `Claude Code failed with exit code ${code}: ${stderr}`,
           process: null
         });
@@ -302,7 +296,6 @@ export class ClaudeExecutor {
       this.debugLog(`Async process error: ${error.message}`);
       taskManager.updateTask(taskId, { 
         status: 'failed', 
-        progress: 100,
         error: `Failed to spawn Claude Code process: ${error.message}`,
         process: null
       });

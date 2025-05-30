@@ -21,7 +21,6 @@ export class TaskManager {
       previousResponseId,
       workingDirectory,
       status: 'pending',
-      progress: 0,
       result: null,
       error: null,
       createdAt: new Date(),

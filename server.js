@@ -199,7 +199,16 @@ server.tool(
 
       let statusText = `Task ${taskId}:\n`;
       statusText += `Status: ${task.status}\n`;
-      statusText += `Progress: ${task.progress}%\n`;
+      
+      // Calculate elapsed time
+      const now = new Date();
+      const elapsedMs = now.getTime() - task.createdAt.getTime();
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+      const minutes = Math.floor(elapsedSeconds / 60);
+      const seconds = elapsedSeconds % 60;
+      const elapsedTime = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+      
+      statusText += `Elapsed: ${elapsedTime}\n`;
       statusText += `Working Directory: ${task.workingDirectory || process.cwd()}\n`;
       statusText += `Created: ${task.createdAt.toISOString()}\n`;
       statusText += `Updated: ${task.updatedAt.toISOString()}\n`;
