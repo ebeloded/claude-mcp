@@ -12,7 +12,7 @@ export const continueTool = {
     previousResponseId: z
       .string()
       .describe("Response ID to continue from a previous agent response. Use the Response ID from any previous task/continue call to branch or continue that conversation."),
-    async: z.boolean().optional().default(false).describe("Whether to execute the task asynchronously. When true, returns a task ID immediately and runs in background. When false (default), returns result synchronously."),
+    async: z.boolean().optional().default(true).describe("Whether to execute the task asynchronously. When true (default), returns a task ID immediately and runs in background. When false, returns result synchronously."),
   },
   handler: (claudeService, taskService) => async ({ prompt, previousResponseId, async }) => {
     try {
