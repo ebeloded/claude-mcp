@@ -3,130 +3,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { spawn } from "child_process";
-import { existsSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
+
+// Import our modules
+import { TaskManager } from "./src/managers/TaskManager.js";
+import { ClaudeExecutor } from "./src/executors/ClaudeExecutor.js";
 
 // Create an MCP server
 const server = new McpServer({
   name: "Claude Code MCP Server",
-  version: "1.0.0",
+  version: "2.0.0",
 });
 
 // Debug flag
 const DEBUG = process.env.MCP_CLAUDE_DEBUG === "true";
 
-function debugLog(...args) {
-  if (DEBUG) {
-    console.error("[DEBUG]", ...args);
-  }
-}
+// Initialize managers and executors
+const taskManager = new TaskManager();
+const claudeExecutor = new ClaudeExecutor(DEBUG);
 
-// Find Claude CLI binary
-function findClaudeCli() {
-  const customCliName = process.env.CLAUDE_CLI_NAME || "claude";
-  
-  debugLog(`Looking for Claude CLI, custom name: ${customCliName}`);
-  
-  // Check if it's an absolute path
-  if (customCliName.startsWith("/")) {
-    debugLog(`Using absolute path: ${customCliName}`);
-    return customCliName;
-  }
-  
-  // For default "claude", check local installation first
-  if (customCliName === "claude") {
-    const userPath = join(homedir(), ".claude", "local", "claude");
-    debugLog(`Checking local path: ${userPath}`);
-    
-    if (existsSync(userPath)) {
-      debugLog(`Found local Claude CLI at: ${userPath}`);
-      return userPath;
-    }
-  }
-  
-  // Fallback to PATH lookup
-  debugLog(`Using PATH lookup for: ${customCliName}`);
-  return customCliName;
-}
-
-// Helper function to execute Claude Code commands
-async function executeClaudeCode(prompt, sessionId) {
-  return new Promise((resolve, reject) => {
-    const claudePath = findClaudeCli();
-    
-    const args = ["-p", prompt, "--output-format", "json"];
-
-    // Add session resumption if sessionId provided
-    if (sessionId) {
-      args.push("--resume", sessionId);
-    }
-
-    // Skip permissions for now (dangerous but functional)
-    args.push("--dangerously-skip-permissions");
-
-    debugLog(`Executing: ${claudePath} ${args.join(" ")}`);
-    
-    // Add timeout to prevent hanging (30 minutes like the reference)
-    const timeout = setTimeout(() => {
-      debugLog("Claude Code execution timed out");
-      reject(new Error("Claude Code execution timed out after 30 minutes"));
-    }, 30 * 60 * 1000);
-
-    const claudeProcess = spawn(claudePath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      shell: false
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    claudeProcess.stdout?.on("data", (data) => {
-      const chunk = data.toString();
-      debugLog(`STDOUT: ${chunk}`);
-      stdout += chunk;
-    });
-
-    claudeProcess.stderr?.on("data", (data) => {
-      const chunk = data.toString();
-      debugLog(`STDERR: ${chunk}`);
-      stderr += chunk;
-    });
-
-    claudeProcess.on("close", (code) => {
-      clearTimeout(timeout);
-      debugLog(`Process closed with code: ${code}`);
-      
-      if (code === 0) {
-        try {
-          const result = JSON.parse(stdout);
-          resolve(result);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse Claude response: ${
-                error instanceof Error ? error.message : String(error)
-              }\nOutput: ${stdout}`
-            )
-          );
-        }
-      } else {
-        reject(
-          new Error(`Claude Code failed with exit code ${code}: ${stderr}`)
-        );
-      }
-    });
-
-    claudeProcess.on("error", (error) => {
-      clearTimeout(timeout);
-      debugLog(`Process error: ${error.message}`);
-      reject(new Error(`Failed to spawn Claude Code process: ${error.message}`));
-    });
-  });
-}
-
-// Add Claude Code execution tool
+// Register tools using the correct MCP SDK pattern
 server.tool(
   "ask",
   {
@@ -134,17 +29,16 @@ server.tool(
     sessionId: z
       .string()
       .optional()
-      .describe("Optional session ID to resume a previous conversation. Note: Claude generates a new session ID for each response, but can still access previous conversation history when this parameter is provided."),
+      .describe("Optional session ID to resume a previous conversation"),
   },
   async ({ prompt, sessionId }) => {
     try {
-      const result = await executeClaudeCode(prompt, sessionId);
-
+      const result = await claudeExecutor.executeSync(prompt, sessionId);
       return {
         content: [
           {
             type: "text",
-            text: `${result.result}\n\nSession ID: ${result.session_id}`,
+            text: JSON.stringify(result),
           },
         ],
       };
@@ -164,8 +58,158 @@ server.tool(
   }
 );
 
+server.tool(
+  "ask_async",
+  {
+    prompt: z.string().describe("The prompt to send to Claude Code"),
+    sessionId: z
+      .string()
+      .optional()
+      .describe("Optional session ID to resume a previous conversation"),
+  },
+  async ({ prompt, sessionId }) => {
+    try {
+      const taskId = taskManager.createTask(prompt, sessionId);
+      
+      // Start execution in background
+      claudeExecutor.executeAsync(taskManager, taskId, prompt, sessionId).catch(error => {
+        if (DEBUG) console.error(`Async execution error for task ${taskId}:`, error);
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Task started successfully. Use ask_status with task ID: ${taskId}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error starting async task: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "ask_status",
+  {
+    taskId: z.string().describe("The task ID to check status for"),
+  },
+  async ({ taskId }) => {
+    try {
+      const task = taskManager.getTask(taskId);
+      
+      if (!task) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Task ${taskId} not found`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      let statusText = `Task ${taskId}:\n`;
+      statusText += `Status: ${task.status}\n`;
+      statusText += `Progress: ${task.progress}%\n`;
+      statusText += `Created: ${task.createdAt.toISOString()}\n`;
+      statusText += `Updated: ${task.updatedAt.toISOString()}\n`;
+
+      if (task.status === 'completed' && task.result) {
+        statusText += `\nResult: ${task.result.result}\n`;
+        statusText += `Session ID: ${task.result.session_id}\n`;
+        statusText += `Cost: $${task.result.cost_usd}\n`;
+        statusText += `Duration: ${task.result.duration_ms}ms`;
+      } else if (task.status === 'failed' && task.error) {
+        statusText += `\nError: ${task.error}`;
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: statusText,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error checking task status: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "ask_cancel",
+  {
+    taskId: z.string().describe("The task ID to cancel"),
+  },
+  async ({ taskId }) => {
+    try {
+      const success = taskManager.cancelTask(taskId);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: success 
+              ? `Task ${taskId} cancelled successfully` 
+              : `Task ${taskId} could not be cancelled (may not exist or already completed)`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error cancelling task: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
 // Start the server over stdio
 const transport = new StdioServerTransport();
+
+// Cleanup on exit
+process.on('SIGINT', () => {
+  if (DEBUG) console.error('[DEBUG] Received SIGINT, cleaning up...');
+  taskManager.destroy();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  if (DEBUG) console.error('[DEBUG] Received SIGTERM, cleaning up...');
+  taskManager.destroy();
+  process.exit(0);
+});
 
 async function main() {
   await server.connect(transport);
@@ -173,5 +217,6 @@ async function main() {
 
 main().catch((err) => {
   console.error(err);
+  taskManager.destroy();
   process.exit(1);
 });

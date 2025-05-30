@@ -5,7 +5,7 @@ import { join } from 'path';
 
 const SERVER_PATH = join(__dirname, '../server.js');
 
-describe('ask tool (E2E)', () => {
+describe('Claude Code MCP Server (E2E)', () => {
   it('executes a simple prompt and returns structured response', async () => {
     // Let the StdioClientTransport spawn the server process
     const transport = new StdioClientTransport({
@@ -127,6 +127,123 @@ describe('ask tool (E2E)', () => {
     expect(content).toBeDefined();
     expect(content[0]).toBeDefined();
     expect(content[0].text).toContain('Error:');
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 30000);
+
+  it('starts async tasks and provides status updates', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Start async task
+    const asyncResult = await client.callTool({ 
+      name: 'ask_async', 
+      arguments: { prompt: 'What is 2 + 2? Just respond with the number.' } 
+    });
+    
+    const asyncContent = (asyncResult as any).content;
+    expect(asyncContent).toBeDefined();
+    expect(asyncContent[0]).toBeDefined();
+    expect(asyncContent[0].text).toContain('Task started successfully');
+    
+    // Extract task ID
+    const taskIdMatch = asyncContent[0].text.match(/task ID: ([a-f0-9-]+)/);
+    expect(taskIdMatch).toBeDefined();
+    const taskId = taskIdMatch[1];
+    
+    // Check status (may still be running or completed)
+    const statusResult = await client.callTool({ 
+      name: 'ask_status', 
+      arguments: { taskId } 
+    });
+    
+    const statusContent = (statusResult as any).content;
+    expect(statusContent).toBeDefined();
+    expect(statusContent[0]).toBeDefined();
+    expect(statusContent[0].text).toContain(`Task ${taskId}`);
+    expect(statusContent[0].text).toMatch(/Status: (pending|running|completed|failed)/);
+    
+    console.log('Async task status:', statusContent[0].text);
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 60000);
+
+  it('can cancel async tasks', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Start async task with a longer prompt that might take time
+    const asyncResult = await client.callTool({ 
+      name: 'ask_async', 
+      arguments: { prompt: 'Write a comprehensive analysis of quantum computing with detailed examples and explanations.' } 
+    });
+    
+    const asyncContent = (asyncResult as any).content;
+    const taskIdMatch = asyncContent[0].text.match(/task ID: ([a-f0-9-]+)/);
+    const taskId = taskIdMatch[1];
+    
+    // Immediately try to cancel (may succeed or may already be completed)
+    const cancelResult = await client.callTool({ 
+      name: 'ask_cancel', 
+      arguments: { taskId } 
+    });
+    
+    const cancelContent = (cancelResult as any).content;
+    expect(cancelContent).toBeDefined();
+    expect(cancelContent[0]).toBeDefined();
+    expect(cancelContent[0].text).toContain(taskId);
+    
+    console.log('Cancel result:', cancelContent[0].text);
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 30000);
+
+  it('handles invalid task IDs gracefully', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Check status for non-existent task
+    const statusResult = await client.callTool({ 
+      name: 'ask_status', 
+      arguments: { taskId: 'non-existent-task-id' } 
+    });
+    
+    const statusContent = (statusResult as any).content;
+    expect(statusContent).toBeDefined();
+    expect(statusContent[0]).toBeDefined();
+    expect(statusContent[0].text).toContain('not found');
+
+    // Try to cancel non-existent task
+    const cancelResult = await client.callTool({ 
+      name: 'ask_cancel', 
+      arguments: { taskId: 'non-existent-task-id' } 
+    });
+    
+    const cancelContent = (cancelResult as any).content;
+    expect(cancelContent).toBeDefined();
+    expect(cancelContent[0]).toBeDefined();
+    expect(cancelContent[0].text).toContain('could not be cancelled');
 
     // Clean up
     if (typeof (transport as any).kill === 'function') {
