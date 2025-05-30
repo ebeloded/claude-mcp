@@ -15,9 +15,9 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call the ask tool with a simple prompt
+    // Call the task tool with a simple prompt
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { prompt: 'What is 2 + 2? Just respond with the number.' } 
     });
     
@@ -58,7 +58,7 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // First call to establish a session
     const firstResult = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { prompt: 'Remember the number 42. Just say "remembered 42".' } 
     });
     
@@ -77,9 +77,9 @@ describe('Claude Code MCP Server (E2E)', () => {
       
       expect(responseId).toBeDefined();
 
-      // Second call with session resumption using the resume tool
+      // Second call with session resumption using the continue tool
       const secondResult = await client.callTool({ 
-        name: 'resume', 
+        name: 'continue', 
         arguments: { 
           prompt: 'What number did I ask you to remember?', 
           previousResponseId: responseId 
@@ -109,9 +109,9 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call with invalid session ID to trigger an error using resume tool
+    // Call with invalid session ID to trigger an error using continue tool
     const result = await client.callTool({ 
-      name: 'resume', 
+      name: 'continue', 
       arguments: { 
         prompt: 'test', 
         previousResponseId: 'invalid-session-id-that-does-not-exist' 
@@ -139,8 +139,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Start async task
     const asyncResult = await client.callTool({ 
-      name: 'ask_async', 
-      arguments: { prompt: 'What is 2 + 2? Just respond with the number.' } 
+      name: 'task', 
+      arguments: { prompt: 'What is 2 + 2? Just respond with the number.', async: true } 
     });
     
     const asyncContent = (asyncResult as any).content;
@@ -155,7 +155,7 @@ describe('Claude Code MCP Server (E2E)', () => {
     
     // Check status (may still be running or completed)
     const statusResult = await client.callTool({ 
-      name: 'ask_status', 
+      name: 'status', 
       arguments: { taskId } 
     });
     
@@ -183,8 +183,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Start async task with a longer prompt that might take time
     const asyncResult = await client.callTool({ 
-      name: 'ask_async', 
-      arguments: { prompt: 'Write a comprehensive analysis of quantum computing with detailed examples and explanations.' } 
+      name: 'task', 
+      arguments: { prompt: 'Write a comprehensive analysis of quantum computing with detailed examples and explanations.', async: true } 
     });
     
     const asyncContent = (asyncResult as any).content;
@@ -193,7 +193,7 @@ describe('Claude Code MCP Server (E2E)', () => {
     
     // Immediately try to cancel (may succeed or may already be completed)
     const cancelResult = await client.callTool({ 
-      name: 'ask_cancel', 
+      name: 'cancel', 
       arguments: { taskId } 
     });
     
@@ -220,7 +220,7 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Check status for non-existent task
     const statusResult = await client.callTool({ 
-      name: 'ask_status', 
+      name: 'status', 
       arguments: { taskId: 'non-existent-task-id' } 
     });
     
@@ -231,7 +231,7 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Try to cancel non-existent task
     const cancelResult = await client.callTool({ 
-      name: 'ask_cancel', 
+      name: 'cancel', 
       arguments: { taskId: 'non-existent-task-id' } 
     });
     
@@ -256,7 +256,7 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // First, establish a conversation
     const firstResult = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { prompt: 'Remember the word "elephant". Just say "remembered elephant".' } 
     });
     
@@ -273,10 +273,11 @@ describe('Claude Code MCP Server (E2E)', () => {
 
       // Now resume with async task
       const asyncResult = await client.callTool({ 
-        name: 'resume_async', 
+        name: 'continue', 
         arguments: { 
           prompt: 'What word did I ask you to remember?',
-          previousResponseId: responseId 
+          previousResponseId: responseId,
+          async: true 
         } 
       });
       
@@ -294,7 +295,7 @@ describe('Claude Code MCP Server (E2E)', () => {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       const statusResult = await client.callTool({ 
-        name: 'ask_status', 
+        name: 'status', 
         arguments: { taskId } 
       });
       
@@ -323,10 +324,10 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Test that resume tool fails without previousResponseId
+    // Test that continue tool fails without previousResponseId
     try {
       await client.callTool({ 
-        name: 'resume', 
+        name: 'continue', 
         arguments: { prompt: 'test' } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');
@@ -335,11 +336,11 @@ describe('Claude Code MCP Server (E2E)', () => {
       expect(error).toBeDefined();
     }
 
-    // Test that resume_async tool fails without previousResponseId
+    // Test that continue tool with async fails without previousResponseId
     try {
       await client.callTool({ 
-        name: 'resume_async', 
-        arguments: { prompt: 'test' } // Missing previousResponseId
+        name: 'continue', 
+        arguments: { prompt: 'test', async: true } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');
     } catch (error) {

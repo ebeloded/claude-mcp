@@ -6,7 +6,7 @@ import { validateTaskId } from "../utils/validation.js";
  * Cancel tool - Cancel running task
  */
 export const cancelTool = {
-  name: "ask_cancel",
+  name: "cancel",
   schema: {
     taskId: z.string().describe("The task ID to cancel"),
   },

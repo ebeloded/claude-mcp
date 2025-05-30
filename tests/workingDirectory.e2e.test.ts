@@ -39,7 +39,7 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with absolute path
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { 
         prompt: 'List the files in the current directory using the ls command.',
         workingDirectory: TEST_DIR
@@ -79,10 +79,11 @@ describe('Working Directory Support (E2E)', () => {
 
     // Start async task with working directory
     const asyncResult = await client.callTool({ 
-      name: 'ask_async', 
+      name: 'task', 
       arguments: { 
         prompt: 'List the files in the current directory.',
-        workingDirectory: SUB_DIR
+        workingDirectory: SUB_DIR,
+        async: true
       } 
     });
     
@@ -101,7 +102,7 @@ describe('Working Directory Support (E2E)', () => {
     
     // Check status
     const statusResult = await client.callTool({ 
-      name: 'ask_status', 
+      name: 'status', 
       arguments: { taskId } 
     });
     
@@ -132,7 +133,7 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with relative path
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { 
         prompt: 'What is 2 + 2?',
         workingDirectory: './tests' // relative to project root
@@ -166,7 +167,7 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with non-existent directory
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { 
         prompt: 'What is 2 + 2?',
         workingDirectory: '/path/that/does/not/exist'
@@ -197,7 +198,7 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test without workingDirectory parameter (should use current directory)
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { 
         prompt: 'What is 2 + 2? Just respond with the number.'
       } 
@@ -230,7 +231,7 @@ describe('Working Directory Support (E2E)', () => {
 
     // First call in one directory
     const firstResult = await client.callTool({ 
-      name: 'ask', 
+      name: 'task', 
       arguments: { 
         prompt: 'Remember the number 42. Just say "remembered 42".',
         workingDirectory: TEST_DIR
@@ -248,9 +249,9 @@ describe('Working Directory Support (E2E)', () => {
       
       expect(responseId).toBeDefined();
 
-      // Second call using resume tool (no workingDirectory parameter - uses original conversation's directory)
+      // Second call using continue tool (no workingDirectory parameter - uses original conversation's directory)
       const secondResult = await client.callTool({ 
-        name: 'resume', 
+        name: 'continue', 
         arguments: { 
           prompt: 'What number did I ask you to remember?',
           previousResponseId: responseId
