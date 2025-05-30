@@ -11,7 +11,7 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 - **Synchronous execution** - `ask` tool for immediate responses
 - **Asynchronous execution** - `ask_async` tool for non-blocking long-running operations
 - **Task management** - Monitor progress, cancel tasks, and retrieve results
-- **Session management** - Resume previous conversations using session IDs
+- **Conversation continuity** - Resume previous conversations using response IDs
 - **Robust CLI detection** - Automatically finds Claude Code installation
 - **Permission bypass** - Uses `--dangerously-skip-permissions` for full functionality
 - **Environment configuration** - Customizable via environment variables
@@ -113,7 +113,7 @@ Execute prompts via Claude Code with optional session continuity. Blocks until c
 
 **Parameters:**
 - `prompt` (string, required): The prompt to send to Claude Code
-- `sessionId` (string, optional): Session ID to resume a previous conversation
+- `previousResponseId` (string, optional): Response ID to continue from a previous Claude response
 
 **Example:**
 ```javascript
@@ -125,7 +125,7 @@ ask({
 // Continue conversation
 ask({ 
   prompt: "Now multiply that by 3",
-  sessionId: "938c8c6d-1897-4ce4-a727-d001a628a279"
+  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279"
 })
 ```
 
@@ -150,7 +150,7 @@ Start a Claude Code execution in the background. Returns immediately with a task
 
 **Parameters:**
 - `prompt` (string, required): The prompt to send to Claude Code  
-- `sessionId` (string, optional): Session ID to resume a previous conversation
+- `previousResponseId` (string, optional): Response ID to continue from a previous Claude response
 
 **Example:**
 ```javascript
@@ -196,7 +196,7 @@ Created: 2025-05-28T21:15:30.123Z
 Updated: 2025-05-28T21:17:22.789Z
 
 Result: [Claude's comprehensive analysis here...]
-Session ID: 938c8c6d-1897-4ce4-a727-d001a628a279
+Response ID: 938c8c6d-1897-4ce4-a727-d001a628a279
 Cost: $0.045
 Duration: 112456ms
 ```
@@ -233,11 +233,7 @@ claude-mcp/
 │   ├── executors/
 │   │   └── ClaudeExecutor.js    # Claude CLI execution logic
 │   └── tools/
-│       ├── askTool.js           # Synchronous execution tool
-│       ├── askAsyncTool.js      # Async execution tool
-│       ├── askStatusTool.js     # Task status monitoring
-│       ├── askCancelTool.js     # Task cancellation
-│       └── index.js             # Tool exports
+│       └── (legacy tool modules - tools now registered directly in server.js)
 └── tests/
     └── claudeCode.e2e.test.ts   # End-to-end tests
 ```
@@ -246,7 +242,7 @@ claude-mcp/
 
 - **TaskManager**: Handles async task creation, tracking, progress monitoring, cancellation, and cleanup
 - **ClaudeExecutor**: Manages Claude CLI discovery and execution for both sync and async patterns
-- **Tools**: Individual tool definitions with clean interfaces and error handling
+- **Tools**: Four MCP tools registered directly in server.js using MCP SDK pattern
 - **Server**: Minimal orchestration layer that wires components together
 
 ## Development
@@ -339,10 +335,11 @@ MIT
 - Run `claude --dangerously-skip-permissions` once to accept terms
 - Ensure the MCP server has permission to execute the Claude CLI
 
-### Session Continuity Issues
-- Session IDs are returned in the response - save them for continuation
-- Sessions may expire after extended periods of inactivity
-- Each new conversation without a sessionId starts fresh
+### Conversation Continuity Issues
+- Response IDs are returned in each response - save them for continuation
+- Conversations may expire after extended periods of inactivity
+- Each new conversation without a previousResponseId starts fresh
+- You can branch conversations from any previous response ID
 
 ### Async Task Issues
 - Tasks are automatically cleaned up after 1 hour of completion
