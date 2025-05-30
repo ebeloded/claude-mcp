@@ -26,19 +26,19 @@ server.tool(
   "ask",
   {
     prompt: z.string().describe("The prompt to send to Claude Code"),
-    sessionId: z
+    previousResponseId: z
       .string()
       .optional()
-      .describe("Optional session ID to resume a previous conversation"),
+      .describe("Optional response ID to continue from a previous Claude response"),
   },
-  async ({ prompt, sessionId }) => {
+  async ({ prompt, previousResponseId }) => {
     try {
-      const result = await claudeExecutor.executeSync(prompt, sessionId);
+      const result = await claudeExecutor.executeSync(prompt, previousResponseId);
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result),
+            text: `${result.result}\n\nResponse ID: ${result.session_id}`,
           },
         ],
       };
@@ -62,17 +62,17 @@ server.tool(
   "ask_async",
   {
     prompt: z.string().describe("The prompt to send to Claude Code"),
-    sessionId: z
+    previousResponseId: z
       .string()
       .optional()
-      .describe("Optional session ID to resume a previous conversation"),
+      .describe("Optional response ID to continue from a previous Claude response"),
   },
-  async ({ prompt, sessionId }) => {
+  async ({ prompt, previousResponseId }) => {
     try {
-      const taskId = taskManager.createTask(prompt, sessionId);
+      const taskId = taskManager.createTask(prompt, previousResponseId);
       
       // Start execution in background
-      claudeExecutor.executeAsync(taskManager, taskId, prompt, sessionId).catch(error => {
+      claudeExecutor.executeAsync(taskManager, taskId, prompt, previousResponseId).catch(error => {
         if (DEBUG) console.error(`Async execution error for task ${taskId}:`, error);
       });
 
@@ -129,7 +129,7 @@ server.tool(
 
       if (task.status === 'completed' && task.result) {
         statusText += `\nResult: ${task.result.result}\n`;
-        statusText += `Session ID: ${task.result.session_id}\n`;
+        statusText += `Response ID: ${task.result.session_id}\n`;
         statusText += `Cost: $${task.result.cost_usd}\n`;
         statusText += `Duration: ${task.result.duration_ms}ms`;
       } else if (task.status === 'failed' && task.error) {

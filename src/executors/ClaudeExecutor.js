@@ -50,15 +50,15 @@ export class ClaudeExecutor {
   /**
    * Execute Claude Code synchronously
    */
-  async executeSync(prompt, sessionId) {
+  async executeSync(prompt, previousResponseId) {
     return new Promise((resolve, reject) => {
       const claudePath = this.findClaudeCli();
       
       const args = ["-p", prompt, "--output-format", "json"];
 
-      // Add session resumption if sessionId provided
-      if (sessionId) {
-        args.push("--resume", sessionId);
+      // Add conversation resumption if previousResponseId provided
+      if (previousResponseId) {
+        args.push("--resume", previousResponseId);
       }
 
       // Skip permissions for now (dangerous but functional)
@@ -127,7 +127,7 @@ export class ClaudeExecutor {
   /**
    * Execute Claude Code asynchronously with progress tracking
    */
-  async executeAsync(taskManager, taskId, prompt, sessionId) {
+  async executeAsync(taskManager, taskId, prompt, previousResponseId) {
     const task = taskManager.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -138,8 +138,8 @@ export class ClaudeExecutor {
     const claudePath = this.findClaudeCli();
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
 
-    if (sessionId) {
-      args.push("--resume", sessionId);
+    if (previousResponseId) {
+      args.push("--resume", previousResponseId);
     }
 
     args.push("--dangerously-skip-permissions");
