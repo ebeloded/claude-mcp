@@ -2,7 +2,7 @@
   "mcpServers": {
     "claude": {
       "type": "stdio",
-      "command": "node",
+      "command": "bun",
       "args": ["/Users/ebeloded/Code/claude-mcp/server.js"],
       "env": {
         "MCP_CLAUDE_DEBUG": "false"

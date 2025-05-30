@@ -8,10 +8,11 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 
 ## Features
 
-- **Synchronous execution** - `ask` tool for immediate responses
-- **Asynchronous execution** - `ask_async` tool for non-blocking long-running operations
-- **Task management** - Monitor progress, cancel tasks, and retrieve results
-- **Conversation continuity** - Resume previous conversations using response IDs
+- **Fresh conversations** - `ask` and `ask_async` tools for starting new conversations
+- **Resume conversations** - `resume` and `resume_async` tools for continuing existing conversations  
+- **Working directory support** - Execute Claude Code in any directory (fresh conversations only)
+- **Task management** - Monitor tasks with elapsed time, cancel operations, and retrieve results
+- **Conversation branching** - Resume from any previous response ID to branch conversations
 - **Robust CLI detection** - Automatically finds Claude Code installation
 - **Permission bypass** - Uses `--dangerously-skip-permissions` for full functionality
 - **Environment configuration** - Customizable via environment variables
@@ -107,61 +108,102 @@ Choose one of the installation options above and add the corresponding configura
 
 ## Tools
 
-### `ask` - Synchronous Execution
+### `ask` - Fresh Conversations
 
-Execute prompts via Claude Code with optional session continuity. Blocks until completion.
+Start fresh conversations with Claude Code. Blocks until completion.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code
-- `previousResponseId` (string, optional): Response ID to continue from a previous Claude response
+- `prompt` (string, required): The prompt to send to Claude Code. Be specific about what you want - mention file paths, desired output format, and any constraints.
+- `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
 
 **Example:**
 ```javascript
-// First execution
+// Simple query in current directory
 ask({ 
   prompt: "What's 2 + 2?" 
 })
 
-// Continue conversation
+// Analyze specific code in project directory
 ask({ 
-  prompt: "Now multiply that by 3",
-  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279"
+  prompt: "Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points",
+  workingDirectory: "/path/to/project"
 })
 ```
 
 **Response Format:**
-```json
-{
-  "type": "result",
-  "subtype": "success", 
-  "result": "4",
-  "session_id": "938c8c6d-1897-4ce4-a727-d001a628a279",
-  "cost_usd": 0.015,
-  "duration_ms": 4742,
-  "num_turns": 1,
-  "is_error": false,
-  "total_cost": 0.015
-}
+```
+4
+
+Response ID: 938c8c6d-1897-4ce4-a727-d001a628a279
 ```
 
-### `ask_async` - Asynchronous Execution
+### `ask_async` - Fresh Async Conversations
 
-Start a Claude Code execution in the background. Returns immediately with a task ID.
+Start fresh conversations with Claude Code in the background. Returns immediately with a task ID.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code  
-- `previousResponseId` (string, optional): Response ID to continue from a previous Claude response
+- `prompt` (string, required): The prompt to send to Claude Code. Be specific about scope and expected deliverables for long-running tasks.
+- `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
 
 **Example:**
 ```javascript
 ask_async({ 
-  prompt: "Write a comprehensive analysis of quantum computing with detailed examples" 
+  prompt: "Analyze the entire codebase for performance bottlenecks, focusing on database queries and API endpoints. Provide specific recommendations with file locations." 
+})
+
+ask_async({ 
+  prompt: "Review all React components in src/components/ for accessibility issues and generate a detailed report with WCAG compliance suggestions", 
+  workingDirectory: "/path/to/frontend-project" 
 })
 ```
 
 **Response:**
 ```
 Task started successfully. Use ask_status with task ID: 550e8400-e29b-41d4-a716-446655440000
+```
+
+### `resume` - Continue Conversations
+
+Resume an existing conversation with Claude Code. Uses the original conversation's working directory.
+
+**Parameters:**
+- `prompt` (string, required): The prompt to send to Claude Code. Reference previous context when needed - Claude remembers the conversation history.
+- `previousResponseId` (string, required): Response ID from a previous Claude response. Use to branch or continue any conversation.
+
+**Example:**
+```javascript
+resume({ 
+  prompt: "What did I just ask you?",
+  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279" 
+})
+```
+
+**Response Format:**
+```
+I asked you about 2 + 2.
+
+Response ID: b2c3d4e5-f6g7-8901-bcde-f23456789012
+```
+
+### `resume_async` - Continue Async Conversations
+
+Resume an existing conversation with Claude Code in the background. Uses the original conversation's working directory.
+
+**Parameters:**
+- `prompt` (string, required): The prompt to send to Claude Code. Reference previous context when needed - Claude remembers the conversation history.
+- `previousResponseId` (string, required): Response ID from a previous Claude response. Use to branch or continue any conversation.
+
+**Example:**
+```javascript
+resume_async({ 
+  prompt: "Continue that analysis with more detail",
+  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279" 
+})
+```
+
+**Response:**
+```
+Task started successfully. Use ask_status with task ID: 661f9511-e30c-41e5-a927-556677889900
 ```
 
 ### `ask_status` - Task Status Monitoring
@@ -182,7 +224,8 @@ ask_status({
 ```
 Task 550e8400-e29b-41d4-a716-446655440000:
 Status: running
-Progress: 45%
+Elapsed: 45s
+Working Directory: /Users/ebeloded/Code/claude-mcp
 Created: 2025-05-28T21:15:30.123Z
 Updated: 2025-05-28T21:16:15.456Z
 ```
@@ -191,7 +234,8 @@ Updated: 2025-05-28T21:16:15.456Z
 ```
 Task 550e8400-e29b-41d4-a716-446655440000:
 Status: completed
-Progress: 100%
+Elapsed: 1m 52s
+Working Directory: /Users/ebeloded/Code/claude-mcp
 Created: 2025-05-28T21:15:30.123Z
 Updated: 2025-05-28T21:17:22.789Z
 
@@ -292,18 +336,31 @@ MCP_CLAUDE_DEBUG=true npm start
 
 ## Use Cases
 
-### Synchronous (`ask`)
-- Quick queries and responses
-- Interactive conversations
-- When you need immediate results
-- Simple automation tasks
+### Fresh Conversations (`ask` / `ask_async`)
+- Starting new conversations or analysis
+- Working with different codebases (using `workingDirectory`)
+- Quick queries and immediate responses (`ask`)
+- Long-running operations that need to be non-blocking (`ask_async`)
+- Analyzing projects in separate directories or git worktrees
 
-### Asynchronous (`ask_async`)
-- Long-running code generation
-- Complex analysis tasks
-- Large file processing
-- When parent agent needs to remain responsive
-- Batch processing scenarios
+### Resume Conversations (`resume` / `resume_async`) 
+- Continuing existing conversations and context
+- Building on previous responses or analysis
+- Following up with questions about prior context
+- Branching conversations from any previous response
+- Maintaining conversation continuity within the same working directory
+
+## Writing Effective Prompts
+
+Each tool provides detailed prompt guidance in its parameter descriptions to help you get the best results from Claude Code. The key principles are:
+
+- **Be specific** about what you want analyzed or created
+- **Mention file paths** and directories to focus Claude's attention  
+- **Specify output format** (bullet points, JSON, code snippets, etc.)
+- **Include constraints** and focus areas (performance, security, accessibility, etc.)
+- **For resume tools**: Reference previous context and build incrementally
+
+See the tool parameter descriptions for comprehensive guidance and examples.
 
 ## Publishing
 
