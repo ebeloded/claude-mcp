@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { spawn } from "child_process";
 import { logger } from "../utils/logger.js";
 import { TaskNotFoundError } from "../utils/errors.js";
 
@@ -76,6 +77,9 @@ export class TaskService {
         this.activeTasks.delete(taskId);
         this.completedTasks.set(taskId, task);
         logger.debugLog(`Moved task ${taskId} to completed tasks`);
+        
+        // Send notification when task completes
+        this.sendNotification(taskId, task.status);
       }
     } else {
       logger.warn(`Attempted to update non-existent task ${taskId}`);
@@ -124,6 +128,51 @@ export class TaskService {
     
     if (cleanedCount > 0) {
       logger.debugLog(`Cleaned up ${cleanedCount} old tasks`);
+    }
+  }
+
+  /**
+   * Send system notification when task completes
+   */
+  sendNotification(taskId, status) {
+    // Skip notifications if disabled
+    if (process.env.MCP_NOTIFICATIONS === 'false') {
+      return;
+    }
+
+    try {
+      const shortId = taskId.slice(0, 8);
+      let message, sound;
+      
+      switch (status) {
+        case 'completed':
+          message = `Task ${shortId} completed successfully`;
+          sound = '/System/Library/Sounds/Glass.aiff';
+          break;
+        case 'failed':
+          message = `Task ${shortId} failed`;
+          sound = '/System/Library/Sounds/Basso.aiff';
+          break;
+        case 'cancelled':
+          message = `Task ${shortId} was cancelled`;
+          sound = '/System/Library/Sounds/Funk.aiff';
+          break;
+        default:
+          return;
+      }
+
+      // macOS system notification
+      if (process.platform === 'darwin') {
+        const notificationScript = `display notification "${message}" with title "Claude MCP Agent"`;
+        spawn('osascript', ['-e', notificationScript], { stdio: 'ignore' });
+        
+        // Play sound
+        spawn('afplay', [sound], { stdio: 'ignore' });
+      }
+      
+      logger.debugLog(`Sent notification for task ${taskId}: ${status}`);
+    } catch (error) {
+      logger.debugLog(`Failed to send notification: ${error.message}`);
     }
   }
 
