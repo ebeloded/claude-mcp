@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "claude": {
+    "agent": {
       "type": "stdio",
       "command": "bun",
       "args": ["/Users/ebeloded/Code/claude-mcp/server.js"],

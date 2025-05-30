@@ -4,7 +4,7 @@ import { join, resolve, relative } from "path";
 import { homedir } from "os";
 
 /**
- * Claude Code execution utilities
+ * Agent execution utilities
  */
 export class ClaudeExecutor {
   constructor(debug = false) {
@@ -18,12 +18,12 @@ export class ClaudeExecutor {
   }
 
   /**
-   * Find Claude CLI binary
+   * Find agent CLI binary
    */
   findClaudeCli() {
     const customCliName = process.env.CLAUDE_CLI_NAME || "claude";
     
-    this.debugLog(`Looking for Claude CLI, custom name: ${customCliName}`);
+    this.debugLog(`Looking for agent CLI, custom name: ${customCliName}`);
     
     // Check if it's an absolute path
     if (customCliName.startsWith("/")) {
@@ -37,7 +37,7 @@ export class ClaudeExecutor {
       this.debugLog(`Checking local path: ${userPath}`);
       
       if (existsSync(userPath)) {
-        this.debugLog(`Found local Claude CLI at: ${userPath}`);
+        this.debugLog(`Found local agent CLI at: ${userPath}`);
         return userPath;
       }
     }
@@ -82,7 +82,7 @@ export class ClaudeExecutor {
   }
 
   /**
-   * Execute Claude Code synchronously
+   * Execute agent synchronously
    */
   async executeSync(prompt, previousResponseId, workingDirectory) {
     return new Promise((resolve, reject) => {
@@ -102,8 +102,8 @@ export class ClaudeExecutor {
       
       // Add timeout to prevent hanging (30 minutes like the reference)
       const timeout = setTimeout(() => {
-        this.debugLog("Claude Code execution timed out");
-        reject(new Error("Claude Code execution timed out after 30 minutes"));
+        this.debugLog("Agent execution timed out");
+        reject(new Error("Agent execution timed out after 30 minutes"));
       }, 30 * 60 * 1000);
 
       const cwd = this.validateWorkingDirectory(workingDirectory);
@@ -143,7 +143,7 @@ export class ClaudeExecutor {
             // Create a structured response that matches expected format
             this.debugLog(`Response is plain text, not JSON: ${stdout}`);
             
-            // Extract response ID from stderr if available (Claude Code might output it there)
+            // Extract response ID from stderr if available (agent might output it there)
             const responseIdMatch = stderr.match(/Response ID: ([a-f0-9-]+)/);
             const responseId = responseIdMatch ? responseIdMatch[1] : null;
             
@@ -159,7 +159,7 @@ export class ClaudeExecutor {
           }
         } else {
           reject(
-            new Error(`Claude Code failed with exit code ${code}: ${stderr}`)
+            new Error(`Agent failed with exit code ${code}: ${stderr}`)
           );
         }
       });
@@ -167,13 +167,13 @@ export class ClaudeExecutor {
       claudeProcess.on("error", (error) => {
         clearTimeout(timeout);
         this.debugLog(`Process error: ${error.message}`);
-        reject(new Error(`Failed to spawn Claude Code process: ${error.message}`));
+        reject(new Error(`Failed to spawn agent process: ${error.message}`));
       });
     });
   }
 
   /**
-   * Execute Claude Code asynchronously with progress tracking
+   * Execute agent asynchronously with progress tracking
    */
   async executeAsync(taskManager, taskId, prompt, previousResponseId, workingDirectory) {
     const task = taskManager.getTask(taskId);
@@ -221,7 +221,7 @@ export class ClaudeExecutor {
           const message = JSON.parse(line);
           if (message.type === 'result') {
             lastResult = message;
-            // Progress update removed - we can't accurately measure Claude Code progress
+            // Progress update removed - we can't accurately measure agent progress
           } else if (message.type === 'assistant' || message.type === 'user') {
             // Progress tracking removed - we don't have reliable progress info
           }
@@ -279,14 +279,14 @@ export class ClaudeExecutor {
         } catch (error) {
           taskManager.updateTask(taskId, { 
             status: 'failed', 
-            error: `Failed to parse Claude response: ${error instanceof Error ? error.message : String(error)}\nOutput: ${stdout}`,
+            error: `Failed to parse agent response: ${error instanceof Error ? error.message : String(error)}\nOutput: ${stdout}`,
             process: null
           });
         }
       } else {
         taskManager.updateTask(taskId, { 
           status: 'failed', 
-          error: `Claude Code failed with exit code ${code}: ${stderr}`,
+          error: `Agent failed with exit code ${code}: ${stderr}`,
           process: null
         });
       }
@@ -296,7 +296,7 @@ export class ClaudeExecutor {
       this.debugLog(`Async process error: ${error.message}`);
       taskManager.updateTask(taskId, { 
         status: 'failed', 
-        error: `Failed to spawn Claude Code process: ${error.message}`,
+        error: `Failed to spawn agent process: ${error.message}`,
         process: null
       });
     });

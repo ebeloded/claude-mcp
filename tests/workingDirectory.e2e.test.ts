@@ -50,12 +50,12 @@ describe('Working Directory Support (E2E)', () => {
     expect(content).toBeDefined();
     expect(content[0]).toBeDefined();
     
-    console.log('Claude response with working directory:', content[0].text);
+    console.log('Agent response with working directory:', content[0].text);
     
     // Check if it's an error response
     if (content[0].text.startsWith('Error:')) {
       expect(content[0].text).toContain('Error:');
-      console.log('Claude Code not available, but error handled correctly');
+      console.log('Agent CLI not available, but error handled correctly');
     } else {
       // Check the clean text response format
       expect(content[0].text).toContain('Response ID:');
@@ -143,7 +143,7 @@ describe('Working Directory Support (E2E)', () => {
     expect(content).toBeDefined();
     expect(content[0]).toBeDefined();
     
-    console.log('Claude response with relative working directory:', content[0].text);
+    console.log('Agent response with relative working directory:', content[0].text);
     
     // Should not error on valid relative path
     if (!content[0].text.startsWith('Error:')) {
@@ -207,7 +207,7 @@ describe('Working Directory Support (E2E)', () => {
     expect(content).toBeDefined();
     expect(content[0]).toBeDefined();
     
-    console.log('Claude response with default working directory:', content[0].text);
+    console.log('Agent response with default working directory:', content[0].text);
     
     // Should work normally without workingDirectory
     if (!content[0].text.startsWith('Error:')) {
@@ -266,7 +266,7 @@ describe('Working Directory Support (E2E)', () => {
         expect(secondContent[0].text).toContain('42');
       } else {
         // If there's an error, it should be handled gracefully
-        console.log('Resume conversation failed - this could be due to Claude Code limitations');
+        console.log('Resume conversation failed - this could be due to agent CLI limitations');
         expect(secondContent[0].text).toContain('Error:');
       }
     }

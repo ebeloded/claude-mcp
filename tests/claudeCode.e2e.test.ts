@@ -27,13 +27,13 @@ describe('Claude Code MCP Server (E2E)', () => {
     expect(content[0]).toBeDefined();
     expect(content[0].text).toBeDefined();
     
-    console.log('Claude response:', content[0].text);
+    console.log('Agent response:', content[0].text);
     
     // Check if it's an error response
     if (content[0].text.startsWith('Error:')) {
       // If it's an error, just verify the error is handled properly
       expect(content[0].text).toContain('Error:');
-      console.log('Claude Code not available or failed, but error handled correctly');
+      console.log('Agent CLI not available or failed, but error handled correctly');
     } else {
       // Check the clean text response format
       expect(content[0].text).toContain('Response ID:');
@@ -46,7 +46,7 @@ describe('Claude Code MCP Server (E2E)', () => {
     if (typeof (transport as any).kill === 'function') {
       await (transport as any).kill();
     }
-  }, 30000); // Increased timeout for Claude Code execution
+  }, 30000); // Increased timeout for agent execution
 
   it('handles session resumption', async () => {
     const transport = new StdioClientTransport({
@@ -63,12 +63,12 @@ describe('Claude Code MCP Server (E2E)', () => {
     });
     
     const firstContent = (firstResult as any).content;
-    console.log('First Claude response:', firstContent[0].text);
+    console.log('First agent response:', firstContent[0].text);
     
     // Check if it's an error response
     if (firstContent[0].text.startsWith('Error:')) {
       expect(firstContent[0].text).toContain('Error:');
-      console.log('Claude Code not available for session test, but error handled correctly');
+      console.log('Agent CLI not available for session test, but error handled correctly');
     } else {
       // Extract response ID from clean text format
       const responseIdMatch = firstContent[0].text.match(/Response ID: ([a-f0-9-]+)/);
@@ -87,7 +87,7 @@ describe('Claude Code MCP Server (E2E)', () => {
       });
       
       const secondContent = (secondResult as any).content;
-      console.log('Second Claude response:', secondContent[0].text);
+      console.log('Second agent response:', secondContent[0].text);
       
       if (!secondContent[0].text.startsWith('Error:')) {
         expect(secondContent[0].text).toContain('Response ID:');
@@ -99,9 +99,9 @@ describe('Claude Code MCP Server (E2E)', () => {
     if (typeof (transport as any).kill === 'function') {
       await (transport as any).kill();
     }
-  }, 60000); // Longer timeout for two Claude Code executions
+  }, 60000); // Longer timeout for two agent executions
 
-  it('handles errors gracefully when Claude Code fails', async () => {
+  it('handles errors gracefully when agent CLI fails', async () => {
     const transport = new StdioClientTransport({
       command: 'node',
       args: [SERVER_PATH]
@@ -306,7 +306,7 @@ describe('Claude Code MCP Server (E2E)', () => {
         expect(statusContent[0].text).toContain('elephant');
       }
     } else {
-      console.log('Claude Code not available for resume async test, but error handled correctly');
+      console.log('Agent CLI not available for resume async test, but error handled correctly');
     }
 
     // Clean up

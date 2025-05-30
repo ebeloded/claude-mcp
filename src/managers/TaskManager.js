@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 
 /**
- * Task Manager for handling async Claude Code operations
+ * Task Manager for handling async agent operations
  */
 export class TaskManager {
   constructor() {

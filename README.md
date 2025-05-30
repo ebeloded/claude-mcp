@@ -113,7 +113,7 @@ Choose one of the installation options above and add the corresponding configura
 Start fresh conversations with Claude Code. Blocks until completion.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code. Be specific about what you want - mention file paths, desired output format, and any constraints.
+- `prompt` (string, required): The prompt to send to the agent. Be specific about what you want - mention file paths, desired output format, and any constraints.
 - `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
 
 **Example:**
@@ -142,7 +142,7 @@ Response ID: 938c8c6d-1897-4ce4-a727-d001a628a279
 Start fresh conversations with Claude Code in the background. Returns immediately with a task ID.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code. Be specific about scope and expected deliverables for long-running tasks.
+- `prompt` (string, required): The prompt to send to the agent. Be specific about scope and expected deliverables for long-running tasks.
 - `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
 
 **Example:**
@@ -167,8 +167,8 @@ Task started successfully. Use ask_status with task ID: 550e8400-e29b-41d4-a716-
 Resume an existing conversation with Claude Code. Uses the original conversation's working directory.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code. Reference previous context when needed - Claude remembers the conversation history.
-- `previousResponseId` (string, required): Response ID from a previous Claude response. Use to branch or continue any conversation.
+- `prompt` (string, required): The prompt to send to the agent. Reference previous context when needed - the agent remembers the conversation history.
+- `previousResponseId` (string, required): Response ID from a previous agent response. Use to branch or continue any conversation.
 
 **Example:**
 ```javascript
@@ -190,8 +190,8 @@ Response ID: b2c3d4e5-f6g7-8901-bcde-f23456789012
 Resume an existing conversation with Claude Code in the background. Uses the original conversation's working directory.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to Claude Code. Reference previous context when needed - Claude remembers the conversation history.
-- `previousResponseId` (string, required): Response ID from a previous Claude response. Use to branch or continue any conversation.
+- `prompt` (string, required): The prompt to send to the agent. Reference previous context when needed - the agent remembers the conversation history.
+- `previousResponseId` (string, required): Response ID from a previous agent response. Use to branch or continue any conversation.
 
 **Example:**
 ```javascript
@@ -286,7 +286,7 @@ claude-mcp/
 
 - **TaskManager**: Handles async task creation, tracking, progress monitoring, cancellation, and cleanup
 - **ClaudeExecutor**: Manages Claude CLI discovery and execution for both sync and async patterns
-- **Tools**: Four MCP tools registered directly in server.js using MCP SDK pattern
+- **Tools**: Six MCP tools registered directly in server.js using MCP SDK pattern
 - **Server**: Minimal orchestration layer that wires components together
 
 ## Development

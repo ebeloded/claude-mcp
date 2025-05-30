@@ -25,11 +25,11 @@ const claudeExecutor = new ClaudeExecutor(DEBUG);
 server.tool(
   "ask",
   {
-    prompt: z.string().describe("The prompt to send to Claude Code. For effective results: (1) Be specific about what you want, (2) Mention specific file paths or directories, (3) Specify desired output format (bullet points, JSON, etc.), (4) Include constraints or focus areas (performance, security, etc.). Example: 'Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points, focusing on input validation and session management'"),
+    prompt: z.string().describe("The prompt to send to the agent. For effective results: (1) Be specific about what you want, (2) Mention specific file paths or directories, (3) Specify desired output format (bullet points, JSON, etc.), (4) Include constraints or focus areas (performance, security, etc.). Example: 'Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points, focusing on input validation and session management'"),
     workingDirectory: z
       .string()
       .optional()
-      .describe("Optional working directory to execute Claude Code from. Use absolute paths or relative to current directory. Useful for working with different projects, git worktrees, or specific subdirectories."),
+      .describe("Optional working directory to execute the agent from. Use absolute paths or relative to current directory. Useful for working with different projects, git worktrees, or specific subdirectories."),
   },
   async ({ prompt, workingDirectory }) => {
     try {
@@ -61,11 +61,11 @@ server.tool(
 server.tool(
   "ask_async",
   {
-    prompt: z.string().describe("The prompt to send to Claude Code. For long-running async tasks: (1) Define clear scope and boundaries, (2) Specify expected deliverables and format, (3) Mention file paths and directories to analyze, (4) Include constraints (focus areas, priorities), (5) Request progress indicators when possible. Example: 'Analyze all React components in src/components/ for accessibility issues, generate a detailed WCAG compliance report with specific line numbers and suggested fixes for each violation'"),
+    prompt: z.string().describe("The prompt to send to the agent. For long-running async tasks: (1) Define clear scope and boundaries, (2) Specify expected deliverables and format, (3) Mention file paths and directories to analyze, (4) Include constraints (focus areas, priorities), (5) Request progress indicators when possible. Example: 'Analyze all React components in src/components/ for accessibility issues, generate a detailed WCAG compliance report with specific line numbers and suggested fixes for each violation'"),
     workingDirectory: z
       .string()
       .optional()
-      .describe("Optional working directory to execute Claude Code from. Use absolute paths or relative to current directory. Useful for working with different projects, git worktrees, or specific subdirectories."),
+      .describe("Optional working directory to execute the agent from. Use absolute paths or relative to current directory. Useful for working with different projects, git worktrees, or specific subdirectories."),
   },
   async ({ prompt, workingDirectory }) => {
     try {
@@ -103,10 +103,10 @@ server.tool(
 server.tool(
   "resume",
   {
-    prompt: z.string().describe("The prompt to send to Claude Code to continue a conversation. Since Claude remembers context: (1) Reference previous responses naturally ('that function', 'the code you analyzed'), (2) Build incrementally ('now add...', 'what about...'), (3) Ask follow-up questions, (4) Request modifications or extensions. Example: 'Now add comprehensive error handling to that authentication function, including input validation and proper logging'"),
+    prompt: z.string().describe("The prompt to send to the agent to continue a conversation. Since the agent remembers context: (1) Reference previous responses naturally ('that function', 'the code you analyzed'), (2) Build incrementally ('now add...', 'what about...'), (3) Ask follow-up questions, (4) Request modifications or extensions. Example: 'Now add comprehensive error handling to that authentication function, including input validation and proper logging'"),
     previousResponseId: z
       .string()
-      .describe("Response ID to continue from a previous Claude response. Use the Response ID from any previous ask/resume call to branch or continue that conversation."),
+      .describe("Response ID to continue from a previous agent response. Use the Response ID from any previous ask/resume call to branch or continue that conversation."),
   },
   async ({ prompt, previousResponseId }) => {
     try {
@@ -138,10 +138,10 @@ server.tool(
 server.tool(
   "resume_async",
   {
-    prompt: z.string().describe("The prompt to send to Claude Code for long-running continuation tasks. Building on conversation context: (1) Reference previous analysis or work clearly, (2) Specify what to extend or continue, (3) Define scope for the additional work, (4) Request specific deliverables and format, (5) Mention if this builds on previous findings. Example: 'Continue that security analysis by implementing the fixes you suggested, providing complete code changes for each vulnerability with detailed comments explaining the security improvements'"),
+    prompt: z.string().describe("The prompt to send to the agent for long-running continuation tasks. Building on conversation context: (1) Reference previous analysis or work clearly, (2) Specify what to extend or continue, (3) Define scope for the additional work, (4) Request specific deliverables and format, (5) Mention if this builds on previous findings. Example: 'Continue that security analysis by implementing the fixes you suggested, providing complete code changes for each vulnerability with detailed comments explaining the security improvements'"),
     previousResponseId: z
       .string()
-      .describe("Response ID to continue from a previous Claude response. Use the Response ID from any previous ask/resume call to branch or continue that conversation."),
+      .describe("Response ID to continue from a previous agent response. Use the Response ID from any previous ask/resume call to branch or continue that conversation."),
   },
   async ({ prompt, previousResponseId }) => {
     try {
