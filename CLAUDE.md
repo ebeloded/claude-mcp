@@ -57,6 +57,8 @@ Uses `previousResponseId` parameter (not "sessionId") because:
 - Each response becomes a new conversation checkpoint
 - Parameter renamed from `sessionId` to clarify this branching behavior
 
+**Important Limitation**: Claude Code stores conversation state relative to the working directory. Conversation continuity may not work when changing working directories between calls. This is a Claude Code limitation, not an MCP server issue.
+
 ### Environment Variables
 
 - `MCP_CLAUDE_DEBUG=true` - Enable verbose logging to stderr

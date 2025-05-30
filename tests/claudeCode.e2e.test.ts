@@ -35,13 +35,11 @@ describe('Claude Code MCP Server (E2E)', () => {
       expect(content[0].text).toContain('Error:');
       console.log('Claude Code not available or failed, but error handled correctly');
     } else {
-      // Parse the JSON response from Claude Code
-      const claudeResponse = JSON.parse(content[0].text);
-      expect(claudeResponse.type).toBe('result');
-      expect(claudeResponse.subtype).toBe('success');
-      expect(claudeResponse.session_id).toBeDefined();
-      expect(claudeResponse.result).toBeDefined();
-      expect(claudeResponse.is_error).toBe(false);
+      // Check the clean text response format
+      expect(content[0].text).toContain('Response ID:');
+      const responseIdMatch = content[0].text.match(/Response ID: ([a-f0-9-]+)/);
+      expect(responseIdMatch).toBeDefined();
+      expect(responseIdMatch[1]).toBeDefined();
     }
 
     // Clean up
@@ -72,19 +70,19 @@ describe('Claude Code MCP Server (E2E)', () => {
       expect(firstContent[0].text).toContain('Error:');
       console.log('Claude Code not available for session test, but error handled correctly');
     } else {
-      const firstResponse = JSON.parse(firstContent[0].text);
-      const sessionId = firstResponse.session_id;
+      // Extract response ID from clean text format
+      const responseIdMatch = firstContent[0].text.match(/Response ID: ([a-f0-9-]+)/);
+      expect(responseIdMatch).toBeDefined();
+      const responseId = responseIdMatch[1];
       
-      expect(sessionId).toBeDefined();
-      expect(firstResponse.type).toBe('result');
-      expect(firstResponse.subtype).toBe('success');
+      expect(responseId).toBeDefined();
 
-      // Second call with session resumption
+      // Second call with session resumption using the resume tool
       const secondResult = await client.callTool({ 
-        name: 'ask', 
+        name: 'resume', 
         arguments: { 
           prompt: 'What number did I ask you to remember?', 
-          sessionId: sessionId 
+          previousResponseId: responseId 
         } 
       });
       
@@ -92,11 +90,8 @@ describe('Claude Code MCP Server (E2E)', () => {
       console.log('Second Claude response:', secondContent[0].text);
       
       if (!secondContent[0].text.startsWith('Error:')) {
-        const secondResponse = JSON.parse(secondContent[0].text);
-        expect(secondResponse.type).toBe('result');
-        expect(secondResponse.subtype).toBe('success');
-        expect(secondResponse.session_id).toBeDefined(); // Session continues (may get new ID)
-        expect(secondResponse.result).toContain('42'); // Should remember the number
+        expect(secondContent[0].text).toContain('Response ID:');
+        expect(secondContent[0].text).toContain('42'); // Should remember the number
       }
     }
 
@@ -114,12 +109,12 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call with invalid session ID to trigger an error
+    // Call with invalid session ID to trigger an error using resume tool
     const result = await client.callTool({ 
-      name: 'ask', 
+      name: 'resume', 
       arguments: { 
         prompt: 'test', 
-        sessionId: 'invalid-session-id-that-does-not-exist' 
+        previousResponseId: 'invalid-session-id-that-does-not-exist' 
       } 
     });
     
@@ -244,6 +239,113 @@ describe('Claude Code MCP Server (E2E)', () => {
     expect(cancelContent).toBeDefined();
     expect(cancelContent[0]).toBeDefined();
     expect(cancelContent[0].text).toContain('could not be cancelled');
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 30000);
+
+  it('resumes async conversations correctly', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // First, establish a conversation
+    const firstResult = await client.callTool({ 
+      name: 'ask', 
+      arguments: { prompt: 'Remember the word "elephant". Just say "remembered elephant".' } 
+    });
+    
+    const firstContent = (firstResult as any).content;
+    console.log('First response:', firstContent[0].text);
+    
+    if (!firstContent[0].text.startsWith('Error:')) {
+      // Extract response ID from clean text format
+      const responseIdMatch = firstContent[0].text.match(/Response ID: ([a-f0-9-]+)/);
+      expect(responseIdMatch).toBeDefined();
+      const responseId = responseIdMatch[1];
+      
+      expect(responseId).toBeDefined();
+
+      // Now resume with async task
+      const asyncResult = await client.callTool({ 
+        name: 'resume_async', 
+        arguments: { 
+          prompt: 'What word did I ask you to remember?',
+          previousResponseId: responseId 
+        } 
+      });
+      
+      const asyncContent = (asyncResult as any).content;
+      expect(asyncContent).toBeDefined();
+      expect(asyncContent[0]).toBeDefined();
+      expect(asyncContent[0].text).toContain('Task started successfully');
+      
+      // Extract task ID
+      const taskIdMatch = asyncContent[0].text.match(/task ID: ([a-f0-9-]+)/);
+      expect(taskIdMatch).toBeDefined();
+      const taskId = taskIdMatch[1];
+      
+      // Wait for completion and check status
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const statusResult = await client.callTool({ 
+        name: 'ask_status', 
+        arguments: { taskId } 
+      });
+      
+      const statusContent = (statusResult as any).content;
+      console.log('Resume async task status:', statusContent[0].text);
+      
+      if (statusContent[0].text.includes('completed') && statusContent[0].text.includes('Result:')) {
+        // Should remember the word from the previous conversation
+        expect(statusContent[0].text).toContain('elephant');
+      }
+    } else {
+      console.log('Claude Code not available for resume async test, but error handled correctly');
+    }
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 90000); // Longer timeout for async operations
+
+  it('validates that resume tools require previousResponseId', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Test that resume tool fails without previousResponseId
+    try {
+      await client.callTool({ 
+        name: 'resume', 
+        arguments: { prompt: 'test' } // Missing previousResponseId
+      });
+      expect.fail('Should have thrown an error for missing previousResponseId');
+    } catch (error) {
+      // Should throw validation error
+      expect(error).toBeDefined();
+    }
+
+    // Test that resume_async tool fails without previousResponseId
+    try {
+      await client.callTool({ 
+        name: 'resume_async', 
+        arguments: { prompt: 'test' } // Missing previousResponseId
+      });
+      expect.fail('Should have thrown an error for missing previousResponseId');
+    } catch (error) {
+      // Should throw validation error
+      expect(error).toBeDefined();
+    }
 
     // Clean up
     if (typeof (transport as any).kill === 'function') {

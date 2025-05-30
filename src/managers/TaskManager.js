@@ -13,12 +13,13 @@ export class TaskManager {
   /**
    * Create a new task
    */
-  createTask(prompt, previousResponseId) {
+  createTask(prompt, previousResponseId, workingDirectory) {
     const taskId = randomUUID();
     const task = {
       id: taskId,
       prompt,
       previousResponseId,
+      workingDirectory,
       status: 'pending',
       progress: 0,
       result: null,

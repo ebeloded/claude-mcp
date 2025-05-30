@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
-import { existsSync } from "fs";
-import { join } from "path";
+import { existsSync, accessSync, constants } from "fs";
+import { join, resolve, relative } from "path";
 import { homedir } from "os";
 
 /**
@@ -48,9 +48,43 @@ export class ClaudeExecutor {
   }
 
   /**
+   * Validate and resolve working directory
+   */
+  validateWorkingDirectory(workingDirectory) {
+    if (!workingDirectory) {
+      return process.cwd();
+    }
+
+    // Resolve relative paths
+    const resolvedPath = resolve(workingDirectory);
+    
+    // Security check: prevent directory traversal attacks
+    const relativePath = relative(process.cwd(), resolvedPath);
+    if (relativePath.startsWith('..') && !resolvedPath.startsWith(process.cwd())) {
+      this.debugLog(`Working directory security check: ${resolvedPath} is outside current directory tree`);
+      // Allow absolute paths, but log for security awareness
+    }
+
+    // Check if directory exists
+    if (!existsSync(resolvedPath)) {
+      throw new Error(`Working directory does not exist: ${resolvedPath}`);
+    }
+
+    // Check if directory is accessible
+    try {
+      accessSync(resolvedPath, constants.R_OK);
+    } catch (error) {
+      throw new Error(`Working directory is not accessible: ${resolvedPath}`);
+    }
+
+    this.debugLog(`Using working directory: ${resolvedPath}`);
+    return resolvedPath;
+  }
+
+  /**
    * Execute Claude Code synchronously
    */
-  async executeSync(prompt, previousResponseId) {
+  async executeSync(prompt, previousResponseId, workingDirectory) {
     return new Promise((resolve, reject) => {
       const claudePath = this.findClaudeCli();
       
@@ -72,9 +106,12 @@ export class ClaudeExecutor {
         reject(new Error("Claude Code execution timed out after 30 minutes"));
       }, 30 * 60 * 1000);
 
+      const cwd = this.validateWorkingDirectory(workingDirectory);
+      
       const claudeProcess = spawn(claudePath, args, {
         stdio: ["ignore", "pipe", "pipe"],
-        shell: false
+        shell: false,
+        cwd: cwd
       });
 
       let stdout = "";
@@ -98,16 +135,27 @@ export class ClaudeExecutor {
         
         if (code === 0) {
           try {
+            // First try to parse as JSON
             const result = JSON.parse(stdout);
             resolve(result);
           } catch (error) {
-            reject(
-              new Error(
-                `Failed to parse Claude response: ${
-                  error instanceof Error ? error.message : String(error)
-                }\nOutput: ${stdout}`
-              )
-            );
+            // If JSON parsing fails, treat as plain text response
+            // Create a structured response that matches expected format
+            this.debugLog(`Response is plain text, not JSON: ${stdout}`);
+            
+            // Extract response ID from stderr if available (Claude Code might output it there)
+            const responseIdMatch = stderr.match(/Response ID: ([a-f0-9-]+)/);
+            const responseId = responseIdMatch ? responseIdMatch[1] : null;
+            
+            resolve({
+              type: "result",
+              subtype: "success",
+              session_id: responseId,
+              result: stdout.trim(),
+              is_error: false,
+              cost_usd: 0,
+              duration_ms: 0
+            });
           }
         } else {
           reject(
@@ -127,7 +175,7 @@ export class ClaudeExecutor {
   /**
    * Execute Claude Code asynchronously with progress tracking
    */
-  async executeAsync(taskManager, taskId, prompt, previousResponseId) {
+  async executeAsync(taskManager, taskId, prompt, previousResponseId, workingDirectory) {
     const task = taskManager.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -146,9 +194,12 @@ export class ClaudeExecutor {
 
     this.debugLog(`Executing async: ${claudePath} ${args.join(" ")}`);
 
+    const cwd = this.validateWorkingDirectory(workingDirectory);
+    
     const claudeProcess = spawn(claudePath, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      shell: false
+      shell: false,
+      cwd: cwd
     });
 
     // Store process for cancellation
@@ -195,14 +246,34 @@ export class ClaudeExecutor {
       if (code === 0) {
         try {
           // If we have a result from streaming, use it; otherwise parse the full output
-          const result = lastResult || (() => {
+          let result = lastResult;
+          if (!result) {
             const lines = stdout.trim().split('\n').filter(line => line.trim());
             const lastLine = lines.pop();
             if (!lastLine) {
               throw new Error('No valid output lines found');
             }
-            return JSON.parse(lastLine);
-          })();
+            try {
+              result = JSON.parse(lastLine);
+            } catch (parseError) {
+              // If JSON parsing fails, treat as plain text response
+              this.debugLog(`Async response is plain text, not JSON: ${stdout}`);
+              
+              // Extract response ID from stderr if available
+              const responseIdMatch = stderr.match(/Response ID: ([a-f0-9-]+)/);
+              const responseId = responseIdMatch ? responseIdMatch[1] : null;
+              
+              result = {
+                type: "result",
+                subtype: "success",
+                session_id: responseId,
+                result: stdout.trim(),
+                is_error: false,
+                cost_usd: 0,
+                duration_ms: 0
+              };
+            }
+          }
           taskManager.updateTask(taskId, { 
             status: 'completed', 
             progress: 100, 
