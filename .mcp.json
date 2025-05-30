@@ -3,7 +3,7 @@
     "agent": {
       "type": "stdio",
       "command": "bun",
-      "args": ["/Users/ebeloded/Code/claude-mcp/server.js"],
+      "args": ["--watch", "/Users/ebeloded/Code/claude-mcp/server.js"],
       "env": {
         "MCP_CLAUDE_DEBUG": "false"
       }
