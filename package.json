@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ebeloded/claude-mcp.git"
+    "url": "git+https://github.com/ebeloded/claude-mcp.git"
   },
   "homepage": "https://github.com/ebeloded/claude-mcp#readme",
   "keywords": [
@@ -20,7 +20,7 @@
   "type": "module",
   "main": "server.js",
   "bin": {
-    "claude-mcp": "./server.js"
+    "claude-mcp": "server.js"
   },
   "files": [
     "server.js",
