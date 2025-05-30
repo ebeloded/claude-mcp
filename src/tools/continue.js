@@ -8,7 +8,7 @@ import { logger } from "../utils/logger.js";
 export const continueTool = {
   name: "continue",
   schema: {
-    prompt: z.string().describe("The prompt to send to the agent to continue a conversation. Since the agent remembers context: (1) Reference previous responses naturally ('that function', 'the code you analyzed'), (2) Build incrementally ('now add...', 'what about...'), (3) Ask follow-up questions, (4) Request modifications or extensions. Example: 'Now add comprehensive error handling to that authentication function, including input validation and proper logging'"),
+    prompt: z.string().describe("The prompt to send to the agent to continue a conversation. Since the agent remembers context: (1) Reference previous responses naturally ('that function', 'the code you analyzed'), (2) Build incrementally ('now add...', 'what about...'), (3) Ask follow-up questions, (4) Request modifications or extensions, (5) Use @-mention syntax to include additional file/directory contents (e.g., '@config/settings.js' or '@tests/') for context. Example: 'Now add comprehensive error handling to that authentication function, also review @config/database.js for connection handling patterns'"),
     previousResponseId: z
       .string()
       .describe("Response ID to continue from a previous agent response. Use the Response ID from any previous task/continue call to branch or continue that conversation."),

@@ -8,7 +8,7 @@ import { logger } from "../utils/logger.js";
 export const taskTool = {
   name: "task",
   schema: {
-    prompt: z.string().describe("The prompt to send to the agent. For effective results: (1) Be specific about what you want, (2) Mention specific file paths or directories, (3) Specify desired output format (bullet points, JSON, etc.), (4) Include constraints or focus areas (performance, security, etc.). Example: 'Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points, focusing on input validation and session management'"),
+    prompt: z.string().describe("The prompt to send to the agent. For effective results: (1) Be specific about what you want, (2) Mention specific file paths or directories, (3) Specify desired output format (bullet points, JSON, etc.), (4) Include constraints or focus areas (performance, security, etc.), (5) Use @-mention syntax to include file contents directly (e.g., '@package.json' or '@src/auth.js') - this automatically reads and includes the file without requiring separate tool calls. Example: 'Analyze the authentication logic in @src/auth.js and list security vulnerabilities as bullet points, focusing on input validation and session management'"),
     workingDirectory: z
       .string()
       .optional()
