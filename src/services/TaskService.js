@@ -217,20 +217,34 @@ export class TaskService {
     }
 
     try {
-      const shortId = taskId.slice(0, 8);
+      const task = this.getTask(taskId);
+      if (!task) {
+        logger.debugLog(`Cannot send notification: task ${taskId} not found`);
+        return;
+      }
+
       let message, sound;
       
       switch (status) {
         case 'completed':
-          message = `Task ${shortId} completed successfully`;
+          // Show preview of the agent's response
+          message = task.result?.result
+            ? (task.result.result.length > 60 
+                ? task.result.result.substring(0, 60) + '...'
+                : task.result.result)
+            : 'Task completed';
           sound = '/System/Library/Sounds/Glass.aiff';
           break;
         case 'failed':
-          message = `Task ${shortId} failed`;
+          message = task.error
+            ? (task.error.length > 60
+                ? task.error.substring(0, 60) + '...'
+                : task.error)
+            : 'Task failed';
           sound = '/System/Library/Sounds/Basso.aiff';
           break;
         case 'cancelled':
-          message = `Task ${shortId} was cancelled`;
+          message = `Task cancelled`;
           sound = '/System/Library/Sounds/Funk.aiff';
           break;
         default:
@@ -239,8 +253,15 @@ export class TaskService {
 
       // macOS system notification
       if (process.platform === 'darwin') {
-        const notificationScript = `display notification "${message}" with title "Claude MCP Agent"`;
-        spawn('osascript', ['-e', notificationScript], { stdio: 'ignore' });
+        // Escape quotes and special characters for AppleScript
+        const escapedMessage = message.replace(/"/g, '\\"').replace(/\n/g, ' ').replace(/\r/g, ' ');
+        const notificationScript = `display notification "${escapedMessage}" with title "Claude Agent"`;
+        logger.debugLog(`Attempting to show notification: ${escapedMessage}`);
+        
+        const notifProcess = spawn('osascript', ['-e', notificationScript], { stdio: 'pipe' });
+        notifProcess.on('error', (err) => {
+          logger.debugLog(`Notification error: ${err.message}`);
+        });
         
         // Play sound
         spawn('afplay', [sound], { stdio: 'ignore' });
