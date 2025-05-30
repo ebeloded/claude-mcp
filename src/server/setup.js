@@ -30,6 +30,9 @@ export class McpServerSetup {
     this.taskService = new TaskService();
     this.claudeService = new ClaudeService();
 
+    // Pass server instance to TaskService for notifications
+    this.taskService.setServer(this.server);
+
     // Register all tools
     registerTools(this.server, this.claudeService, this.taskService);
 

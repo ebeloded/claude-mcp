@@ -12,8 +12,17 @@ export class TaskService {
     this.activeTasks = new Map();
     this.completedTasks = new Map();
     this.cleanupInterval = setInterval(() => this.cleanup(), 300000); // 5 minutes
+    this.server = null; // Will be set later for MCP notifications
     
     logger.debugLog('TaskService initialized');
+  }
+
+  /**
+   * Set the MCP server instance for sending notifications
+   */
+  setServer(server) {
+    this.server = server;
+    logger.debugLog('TaskService: MCP server instance set for notifications');
   }
 
   /**
@@ -36,6 +45,16 @@ export class TaskService {
     
     this.activeTasks.set(taskId, task);
     logger.debugLog(`Created task ${taskId}`);
+    
+    // Send MCP notification for task creation
+    this.sendMcpNotification('task/created', {
+      taskId,
+      prompt,
+      previousResponseId,
+      workingDirectory,
+      createdAt: task.createdAt.toISOString()
+    });
+    
     return taskId;
   }
 
@@ -72,14 +91,38 @@ export class TaskService {
       
       logger.debugLog(`Updated task ${taskId}: ${oldStatus} -> ${task.status}`);
       
+      // Send MCP notification for status updates
+      this.sendMcpNotification('task/updated', {
+        taskId,
+        status: task.status,
+        previousStatus: oldStatus,
+        updatedAt: task.updatedAt.toISOString(),
+        ...(task.result && { result: task.result }),
+        ...(task.error && { error: task.error })
+      });
+      
       // Move to completed if finished
       if (updates.status === 'completed' || updates.status === 'failed' || updates.status === 'cancelled') {
         this.activeTasks.delete(taskId);
         this.completedTasks.set(taskId, task);
         logger.debugLog(`Moved task ${taskId} to completed tasks`);
         
-        // Send notification when task completes
+        // Send system notification when task completes (if enabled)
         this.sendNotification(taskId, task.status);
+        
+        // Send MCP completion notification
+        this.sendMcpNotification('task/completed', {
+          taskId,
+          status: task.status,
+          ...(task.result && { 
+            result: task.result.result,
+            responseId: task.result.session_id,
+            cost: task.result.cost_usd,
+            duration: task.result.duration_ms
+          }),
+          ...(task.error && { error: task.error }),
+          completedAt: task.updatedAt.toISOString()
+        });
       }
     } else {
       logger.warn(`Attempted to update non-existent task ${taskId}`);
@@ -95,6 +138,13 @@ export class TaskService {
       logger.debugLog(`Cancelling task ${taskId}`);
       task.process.kill('SIGTERM');
       this.updateTask(taskId, { status: 'cancelled' });
+      
+      // Send MCP notification for cancellation
+      this.sendMcpNotification('task/cancelled', {
+        taskId,
+        cancelledAt: new Date().toISOString()
+      });
+      
       return true;
     }
     logger.debugLog(`Cannot cancel task ${taskId} - not found or no process`);
@@ -128,6 +178,32 @@ export class TaskService {
     
     if (cleanedCount > 0) {
       logger.debugLog(`Cleaned up ${cleanedCount} old tasks`);
+    }
+  }
+
+  /**
+   * Send MCP notification to client
+   */
+  sendMcpNotification(method, params) {
+    if (!this.server) {
+      logger.debugLog('Cannot send MCP notification: server not set');
+      return;
+    }
+
+    try {
+      // Check if server has notification capability
+      if (typeof this.server.notification === 'function') {
+        this.server.notification(method, params);
+      } else if (typeof this.server.sendNotification === 'function') {
+        this.server.sendNotification({ method, params });
+      } else {
+        logger.debugLog(`MCP server does not support notifications - method: ${method}`, params);
+        return;
+      }
+      
+      logger.debugLog(`Sent MCP notification: ${method}`, params);
+    } catch (error) {
+      logger.warn(`Failed to send MCP notification: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -172,7 +248,7 @@ export class TaskService {
       
       logger.debugLog(`Sent notification for task ${taskId}: ${status}`);
     } catch (error) {
-      logger.debugLog(`Failed to send notification: ${error.message}`);
+      logger.debugLog(`Failed to send notification: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
