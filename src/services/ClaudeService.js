@@ -48,6 +48,10 @@ export class ClaudeService {
 
   /**
    * Build command line arguments for Claude CLI
+   * @param {string} prompt
+   * @param {string|null} previousResponseId
+   * @param {boolean} isAsync
+   * @returns {string[]}
    */
   buildArgs(prompt, previousResponseId = null, isAsync = false) {
     validatePrompt(prompt);
