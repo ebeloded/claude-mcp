@@ -66,14 +66,16 @@ export class ClaudeService {
       args.push("--resume", previousResponseId);
     }
 
-    // Skip permissions for now (dangerous but functional)
-    args.push("--dangerously-skip-permissions");
+    // Let Claude Code use native permission system from settings.json files
 
     return args;
   }
 
   /**
    * Parse Claude CLI response
+   * @param {string} stdout
+   * @param {string} stderr  
+   * @param {boolean} isPlainText
    */
   parseResponse(stdout, stderr, isPlainText = false) {
     if (isPlainText) {
@@ -102,6 +104,9 @@ export class ClaudeService {
 
   /**
    * Execute agent synchronously
+   * @param {string} prompt
+   * @param {string|null} previousResponseId
+   * @param {string|null} workingDirectory
    */
   async executeSync(prompt, previousResponseId = null, workingDirectory = null) {
     return new Promise((resolve, reject) => {
@@ -163,9 +168,13 @@ export class ClaudeService {
 
   /**
    * Execute agent asynchronously with progress tracking
+   * @param {any} taskService
+   * @param {string} taskId
+   * @param {string} prompt
+   * @param {string|null} previousResponseId
+   * @param {string|null} workingDirectory
    */
   async executeAsync(taskService, taskId, prompt, previousResponseId = null, workingDirectory = null) {
-    const task = taskService.getTaskOrThrow(taskId);
     taskService.updateTask(taskId, { status: 'running' });
 
     const args = this.buildArgs(prompt, previousResponseId, true);
@@ -192,7 +201,7 @@ export class ClaudeService {
       stdout += chunk;
 
       // Parse streaming JSON for progress updates
-      const lines = chunk.split('\n').filter(line => line.trim());
+      const lines = chunk.split('\n').filter((/** @type {string} */ line) => line.trim());
       for (const line of lines) {
         try {
           const message = JSON.parse(line);
