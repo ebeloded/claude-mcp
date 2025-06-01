@@ -13,23 +13,36 @@ export const taskTool = {
       .string()
       .optional()
       .describe("Optional working directory to execute the agent from. Use absolute paths or relative to current directory. Useful for working with different projects, git worktrees, or specific subdirectories."),
+    systemPrompt: z
+      .string()
+      .optional()
+      .describe("Optional system prompt to override the default behavior. This completely replaces the default system prompt."),
+    appendSystemPrompt: z
+      .string()
+      .optional()
+      .describe("Optional text to append to the default system prompt. This is added after the default system prompt."),
     async: z.boolean().optional().default(true).describe("Whether to execute the task asynchronously. When true (default), returns a task ID immediately and runs in background. When false, returns result synchronously."),
   },
-  handler: (claudeService, taskService) => async ({ prompt, workingDirectory, async }) => {
+  handler: (claudeService, taskService) => async ({ prompt, workingDirectory, systemPrompt, appendSystemPrompt, async }) => {
     try {
+      // Prepare options object with optional parameters
+      const options = {};
+      if (systemPrompt) options.systemPrompt = systemPrompt;
+      if (appendSystemPrompt) options.appendSystemPrompt = appendSystemPrompt;
+      
       if (async) {
         // Async execution - start background task
-        const taskId = taskService.createTask(prompt, undefined, workingDirectory);
+        const taskId = taskService.createTask(prompt, undefined, workingDirectory, options);
         
         // Start execution in background
-        claudeService.executeAsync(taskService, taskId, prompt, undefined, workingDirectory).catch(error => {
+        claudeService.executeAsync(taskService, taskId, prompt, undefined, workingDirectory, options).catch(error => {
           logger.error(`Async execution error for task ${taskId}:`, error);
         });
 
         return createSuccessResponse(`Task started successfully. Use status with task ID: ${taskId}`);
       } else {
         // Sync execution - return result immediately
-        const result = await claudeService.executeSync(prompt, undefined, workingDirectory);
+        const result = await claudeService.executeSync(prompt, undefined, workingDirectory, options);
         return {
           content: [
             {

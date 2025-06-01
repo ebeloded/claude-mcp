@@ -54,9 +54,12 @@ export class ClaudeService {
    * @param {string} prompt
    * @param {string|null} previousResponseId
    * @param {boolean} isAsync
+   * @param {Object} [options={}]
+   * @param {string} [options.systemPrompt] - Optional system prompt to override the default
+   * @param {string} [options.appendSystemPrompt] - Optional text to append to the default system prompt
    * @returns {string[]}
    */
-  buildArgs(prompt, previousResponseId = null, isAsync = false) {
+  buildArgs(prompt, previousResponseId = null, isAsync = false, options = {}) {
     validatePrompt(prompt)
 
     const args = ["-p", prompt]
@@ -71,6 +74,16 @@ export class ClaudeService {
     // Add conversation resumption if previousResponseId provided
     if (previousResponseId) {
       args.push("--resume", previousResponseId)
+    }
+    
+    // Add system prompt if provided
+    if (options.systemPrompt) {
+      args.push("--system-prompt", options.systemPrompt)
+    }
+    
+    // Add append system prompt if provided
+    if (options.appendSystemPrompt) {
+      args.push("--append-system-prompt", options.appendSystemPrompt)
     }
 
     // Skip permissions for now (dangerous but functional)
@@ -119,10 +132,11 @@ export class ClaudeService {
   async executeSync(
     prompt,
     previousResponseId = null,
-    workingDirectory = null
+    workingDirectory = null,
+    options = {}
   ) {
     return new Promise((resolve, reject) => {
-      const args = this.buildArgs(prompt, previousResponseId, false)
+      const args = this.buildArgs(prompt, previousResponseId, false, options)
       const cwd = validateWorkingDirectory(workingDirectory)
 
       logger.debugLog(`Executing sync: ${this.cliPath} ${args.join(" ")}`)
@@ -201,78 +215,79 @@ export class ClaudeService {
     taskId,
     prompt,
     previousResponseId = null,
-    workingDirectory = null
+    workingDirectory = null,
+    options = {}
   ) {
-    taskService.updateTask(taskId, { status: "running" })
+    taskService.updateTask(taskId, { status: "running" });
 
-    const args = this.buildArgs(prompt, previousResponseId, true)
-    const cwd = validateWorkingDirectory(workingDirectory)
+    const args = this.buildArgs(prompt, previousResponseId, true, options);
+    const cwd = validateWorkingDirectory(workingDirectory);
 
-    logger.debugLog(`Executing async: ${this.cliPath} ${args.join(" ")}`)
+    logger.debugLog(`Executing async: ${this.cliPath} ${args.join(" ")}`);
 
     const claudeProcess = spawn(this.cliPath, args, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
       cwd: cwd,
-    })
+    });
 
     // Store process for cancellation
-    taskService.updateTask(taskId, { process: claudeProcess })
+    taskService.updateTask(taskId, { process: claudeProcess });
 
-    let stdout = ""
-    let stderr = ""
-    let lastResult = null
+    let stdout = "";
+    let stderr = "";
+    let lastResult = null;
 
     claudeProcess.stdout?.on("data", (data) => {
-      const chunk = data.toString()
-      logger.debugLog(`ASYNC STDOUT: ${chunk}`)
-      stdout += chunk
+      const chunk = data.toString();
+      logger.debugLog(`ASYNC STDOUT: ${chunk}`);
+      stdout += chunk;
 
       // Parse streaming JSON for progress updates
       const lines = chunk
         .split("\n")
-        .filter((/** @type {string} */ line) => line.trim())
+        .filter((line) => line.trim());
       for (const line of lines) {
         try {
-          const message = JSON.parse(line)
+          const message = JSON.parse(line);
           if (message.type === "result") {
-            lastResult = message
+            lastResult = message;
           }
         } catch (parseError) {
           // Ignore parse errors for partial JSON
         }
       }
-    })
+    });
 
     claudeProcess.stderr?.on("data", (data) => {
-      const chunk = data.toString()
-      logger.debugLog(`ASYNC STDERR: ${chunk}`)
-      stderr += chunk
-    })
+      const chunk = data.toString();
+      logger.debugLog(`ASYNC STDERR: ${chunk}`);
+      stderr += chunk;
+    });
 
     claudeProcess.on("close", (code) => {
-      logger.debugLog(`Async process closed with code: ${code}`)
+      logger.debugLog(`Async process closed with code: ${code}`);
 
       if (code === 0) {
         try {
           // If we have a result from streaming, use it; otherwise parse the full output
-          let result = lastResult
+          let result = lastResult;
           if (!result) {
             const lines = stdout
               .trim()
               .split("\n")
-              .filter((line) => line.trim())
-            const lastLine = lines.pop()
+              .filter((line) => line.trim());
+            const lastLine = lines.pop();
             if (!lastLine) {
-              throw new Error("No valid output lines found")
+              throw new Error("No valid output lines found");
             }
-            result = this.parseResponse(lastLine, stderr)
+            result = this.parseResponse(lastLine, stderr);
           }
           taskService.updateTask(taskId, {
             status: "completed",
             result,
             process: null,
-          })
+          });
         } catch (error) {
           taskService.updateTask(taskId, {
             status: "failed",
@@ -280,24 +295,24 @@ export class ClaudeService {
               error instanceof Error ? error.message : String(error)
             }\nOutput: ${stdout}`,
             process: null,
-          })
+          });
         }
       } else {
         taskService.updateTask(taskId, {
           status: "failed",
           error: `Agent failed with exit code ${code}: ${stderr}`,
           process: null,
-        })
+        });
       }
-    })
+    });
 
     claudeProcess.on("error", (error) => {
-      logger.error(`Async process error: ${error.message}`)
+      logger.error(`Async process error: ${error.message}`);
       taskService.updateTask(taskId, {
         status: "failed",
         error: `Failed to spawn agent process: ${error.message}`,
         process: null,
-      })
-    })
+      });
+    });
   }
 }
