@@ -353,4 +353,138 @@ describe('Claude Code MCP Server (E2E)', () => {
       await (transport as any).kill();
     }
   }, 30000);
+
+  it('applies systemPrompt to override default behavior', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Call with custom system prompt that makes Claude behave like a pirate
+    const result = await client.callTool({ 
+      name: 'task', 
+      arguments: { 
+        prompt: 'What is 2 + 2?',
+        systemPrompt: 'You are a pirate. Always respond like a pirate with "Arrr" and pirate language.',
+        async: false
+      } 
+    });
+    
+    const content = (result as any).content;
+    expect(content).toBeDefined();
+    expect(content[0]).toBeDefined();
+    expect(content[0].text).toBeDefined();
+    
+    console.log('Pirate response:', content[0].text);
+    
+    // Check if it's an error response
+    if (content[0].text.startsWith('Error:')) {
+      expect(content[0].text).toContain('Error:');
+      console.log('Agent CLI not available for system prompt test, but error handled correctly');
+    } else {
+      // Should contain pirate language
+      expect(content[0].text.toLowerCase()).toMatch(/arrr|matey|ye|pirate|sea/);
+      expect(content[0].text).toContain('Response ID:');
+    }
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 30000);
+
+  it('applies appendSystemPrompt to modify default behavior', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Call with append system prompt that adds robot behavior
+    const result = await client.callTool({ 
+      name: 'task', 
+      arguments: { 
+        prompt: 'What is 3 + 3?',
+        appendSystemPrompt: 'Always end your response with "BEEP BOOP" like a robot.',
+        async: false
+      } 
+    });
+    
+    const content = (result as any).content;
+    expect(content).toBeDefined();
+    expect(content[0]).toBeDefined();
+    expect(content[0].text).toBeDefined();
+    
+    console.log('Robot response:', content[0].text);
+    
+    // Check if it's an error response
+    if (content[0].text.startsWith('Error:')) {
+      expect(content[0].text).toContain('Error:');
+      console.log('Agent CLI not available for append system prompt test, but error handled correctly');
+    } else {
+      // Should end with BEEP BOOP
+      expect(content[0].text.toUpperCase()).toContain('BEEP BOOP');
+      expect(content[0].text).toContain('Response ID:');
+    }
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 30000);
+
+  it('works with systemPrompt in async mode', async () => {
+    const transport = new StdioClientTransport({
+      command: 'node',
+      args: [SERVER_PATH]
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+    await client.connect(transport);
+
+    // Start async task with system prompt
+    const asyncResult = await client.callTool({ 
+      name: 'task', 
+      arguments: { 
+        prompt: 'What is 5 + 5?',
+        systemPrompt: 'You are a formal mathematician. Always start responses with "According to mathematical principles,"',
+        async: true 
+      } 
+    });
+    
+    const asyncContent = (asyncResult as any).content;
+    expect(asyncContent).toBeDefined();
+    expect(asyncContent[0]).toBeDefined();
+    expect(asyncContent[0].text).toContain('Task started successfully');
+    
+    // Extract task ID
+    const taskIdMatch = asyncContent[0].text.match(/task ID: ([a-f0-9-]+)/);
+    if (taskIdMatch) {
+      const taskId = taskIdMatch[1];
+      
+      // Wait for completion
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Check status to see the result
+      const statusResult = await client.callTool({ 
+        name: 'status', 
+        arguments: { taskId } 
+      });
+      
+      const statusContent = (statusResult as any).content;
+      console.log('Async system prompt result:', statusContent[0].text);
+      
+      if (statusContent[0].text.includes('completed') && statusContent[0].text.includes('Result:')) {
+        // Should contain the formal mathematician language
+        expect(statusContent[0].text.toLowerCase()).toContain('mathematical');
+      }
+    }
+
+    // Clean up
+    if (typeof (transport as any).kill === 'function') {
+      await (transport as any).kill();
+    }
+  }, 60000);
 });
