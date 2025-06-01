@@ -19,6 +19,8 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 - **Debug logging** - Optional verbose logging for troubleshooting
 - **Modular architecture** - Clean, maintainable codebase with separation of concerns
 - **Automated publishing** - GitHub Actions workflow for releases
+- **System notifications** - macOS notifications for task start/completion with distinct sounds
+- **Process cleanup** - Automatic cleanup of orphaned processes when MCP server disconnects
 
 ## Prerequisites
 
@@ -105,6 +107,7 @@ Choose one of the installation options above and add the corresponding configura
 
 - `CLAUDE_CLI_NAME`: Override Claude CLI binary name (default: "claude")
 - `MCP_CLAUDE_DEBUG`: Set to "true" for verbose debug logging
+- `MCP_NOTIFICATIONS`: Set to "false" to disable macOS system notifications
 
 ## Tools
 
@@ -272,20 +275,26 @@ The server follows a modular architecture for maintainability:
 claude-mcp/
 ├── server.js                    # Main entry point & orchestration
 ├── src/
-│   ├── managers/
-│   │   └── TaskManager.js       # Async task lifecycle management
-│   ├── executors/
-│   │   └── ClaudeExecutor.js    # Claude CLI execution logic
-│   └── tools/
-│       └── (legacy tool modules - tools now registered directly in server.js)
+│   ├── server/
+│   │   └── setup.js             # MCP server setup and signal handling
+│   ├── services/
+│   │   ├── TaskService.js       # Async task lifecycle & notification management
+│   │   └── ClaudeService.js     # Claude CLI execution logic
+│   ├── tools/
+│   │   └── (MCP tool definitions)
+│   └── utils/
+│       ├── errors.js            # Error handling utilities
+│       ├── logger.js            # Debug logging utilities
+│       └── validation.js       # Input validation utilities
 └── tests/
-    └── claudeCode.e2e.test.ts   # End-to-end tests
+    └── *.e2e.test.ts            # End-to-end tests
 ```
 
 ### Component Responsibilities
 
-- **TaskManager**: Handles async task creation, tracking, progress monitoring, cancellation, and cleanup
-- **ClaudeExecutor**: Manages Claude CLI discovery and execution for both sync and async patterns
+- **TaskService**: Handles async task creation, tracking, progress monitoring, cancellation, cleanup, and system notifications
+- **ClaudeService**: Manages Claude CLI discovery and execution for both sync and async patterns with process group management
+- **Setup**: MCP server initialization, signal handling, and graceful shutdown coordination
 - **Tools**: Six MCP tools registered directly in server.js using MCP SDK pattern
 - **Server**: Minimal orchestration layer that wires components together
 
@@ -403,9 +412,17 @@ MIT
 - Use `ask_status` to monitor long-running tasks
 - Tasks can be cancelled with `ask_cancel` if needed
 - Check debug logs if tasks appear stuck
+- Tasks are automatically cancelled when MCP server disconnects
+
+### System Notifications
+- macOS notifications show task start ("Agent Task Started") and completion ("Agent Task Completed")
+- Different sounds for start (Tink) vs completion (Glass/Basso/Funk based on result)
+- Disable with `MCP_NOTIFICATIONS=false` environment variable
+- Notifications include truncated prompt text for context
 
 ### Performance Considerations
 - Async tasks don't block the MCP server
 - Multiple async tasks can run concurrently
 - Monitor task progress to avoid resource exhaustion
 - Consider task cancellation for very long operations
+- Parent process monitoring prevents orphaned processes
