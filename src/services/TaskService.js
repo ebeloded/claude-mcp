@@ -12,6 +12,7 @@ export class TaskService {
     this.activeTasks = new Map();
     this.completedTasks = new Map();
     this.cleanupInterval = setInterval(() => this.cleanup(), 300000); // 5 minutes
+    this.parentCheckInterval = setInterval(() => this.checkParentProcess(), 1000); // Check every second
     this.server = null; // Will be set later for MCP notifications
     
     logger.debugLog('TaskService initialized');
@@ -136,7 +137,18 @@ export class TaskService {
     const task = this.activeTasks.get(taskId);
     if (task && task.process) {
       logger.debugLog(`Cancelling task ${taskId}`);
-      task.process.kill('SIGTERM');
+      
+      try {
+        // Kill the entire process group
+        process.kill(-task.process.pid, 'SIGTERM');
+        logger.debugLog(`Sent SIGTERM to process group ${task.process.pid}`);
+      } catch (error) {
+        // Fallback to killing just the process if process group kill fails
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.debugLog(`Process group kill failed, fallback to single process: ${errorMessage}`);
+        task.process.kill('SIGTERM');
+      }
+      
       this.updateTask(taskId, { status: 'cancelled' });
       
       // Send MCP notification for cancellation
@@ -274,6 +286,61 @@ export class TaskService {
   }
 
   /**
+   * Check if parent process is still alive
+   */
+  checkParentProcess() {
+    try {
+      const ppid = process.ppid;
+      if (ppid <= 1) {
+        logger.info('Parent process no longer exists, shutting down...');
+        this.shutdownDueToParentExit('Parent process no longer exists');
+        return;
+      }
+      
+      // Try to signal parent process to check if it exists
+      process.kill(ppid, 0);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.info('Parent process check failed, shutting down...', errorMessage);
+      this.shutdownDueToParentExit(`Parent process check failed: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Shutdown due to parent process exit - notify about each task
+   */
+  shutdownDueToParentExit(reason) {
+    logger.info(`Shutting down due to parent exit: ${reason}`);
+    
+    // Send notifications for each active task before cancelling
+    const activeTasks = Array.from(this.activeTasks.keys());
+    for (const taskId of activeTasks) {
+      this.sendMcpNotification('task/cancelled', {
+        taskId,
+        reason: 'parent_process_exit',
+        details: reason,
+        cancelledAt: new Date().toISOString()
+      });
+      
+      // Cancel the task
+      const task = this.activeTasks.get(taskId);
+      if (task && task.process) {
+        try {
+          process.kill(-task.process.pid, 'SIGTERM');
+          logger.debugLog(`Sent SIGTERM to process group ${task.process.pid} due to parent exit`);
+        } catch (killError) {
+          task.process.kill('SIGTERM');
+        }
+      }
+      
+      this.updateTask(taskId, { status: 'cancelled' });
+    }
+    
+    this.destroy();
+    process.exit(0);
+  }
+
+  /**
    * Destroy service and cancel all tasks
    */
   destroy() {
@@ -281,6 +348,10 @@ export class TaskService {
     
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
+    }
+    
+    if (this.parentCheckInterval) {
+      clearInterval(this.parentCheckInterval);
     }
     
     // Cancel all active tasks

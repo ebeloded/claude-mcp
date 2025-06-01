@@ -51,14 +51,33 @@ export class McpServerSetup {
   setupCleanupHandlers() {
     const cleanup = (signal) => {
       logger.info(`Received ${signal}, cleaning up...`);
+      logger.info(`Active tasks: ${this.taskService ? this.taskService.getStats().active : 0}`);
       if (this.taskService) {
         this.taskService.destroy();
       }
       process.exit(0);
     };
 
-    process.on('SIGINT', () => cleanup('SIGINT'));
-    process.on('SIGTERM', () => cleanup('SIGTERM'));
+    // Handle more signals and add debug logging
+    process.on('SIGINT', () => {
+      logger.info('SIGINT received');
+      cleanup('SIGINT');
+    });
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received');
+      cleanup('SIGTERM');
+    });
+    process.on('SIGHUP', () => {
+      logger.info('SIGHUP received');
+      cleanup('SIGHUP');
+    });
+    
+    // Log when process is about to exit
+    process.on('exit', (code) => {
+      logger.info(`Process exiting with code: ${code}`);
+    });
+    
+    logger.info('Cleanup handlers registered for SIGINT, SIGTERM, SIGHUP');
   }
 
   /**

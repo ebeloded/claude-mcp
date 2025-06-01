@@ -5,7 +5,7 @@
       "command": "bun",
       "args": ["--watch", "/Users/ebeloded/Code/claude-mcp/server.js"],
       "env": {
-        "MCP_CLAUDE_DEBUG": "false"
+        "MCP_CLAUDE_DEBUG": "true"
       }
     }
   }

@@ -151,6 +151,7 @@ export class ClaudeService {
         stdio: ["ignore", "pipe", "pipe"],
         shell: false,
         cwd: cwd,
+        detached: false,
       })
 
       let stdout = ""
@@ -229,6 +230,7 @@ export class ClaudeService {
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
       cwd: cwd,
+      detached: false,
     });
 
     // Store process for cancellation
