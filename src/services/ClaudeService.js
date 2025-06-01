@@ -233,8 +233,9 @@ export class ClaudeService {
       detached: false,
     });
 
-    // Store process for cancellation
+    // Store process for cancellation and send started notification
     taskService.updateTask(taskId, { process: claudeProcess });
+    taskService.sendTaskStartedNotification(taskId, prompt, workingDirectory);
 
     let stdout = "";
     let stderr = "";
@@ -248,7 +249,7 @@ export class ClaudeService {
       // Parse streaming JSON for progress updates
       const lines = chunk
         .split("\n")
-        .filter((line) => line.trim());
+        .filter((/** @type {string} */ line) => line.trim());
       for (const line of lines) {
         try {
           const message = JSON.parse(line);

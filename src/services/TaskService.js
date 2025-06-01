@@ -194,7 +194,63 @@ export class TaskService {
   }
 
   /**
+   * Send task started notification
+   */
+  sendTaskStartedNotification(taskId, prompt, workingDirectory) {
+    logger.debugLog(`Sending task started notification for ${taskId}`);
+    
+    // Send MCP notification (even though it's not supported, for logging)
+    this.sendMcpNotification('task/started', {
+      taskId,
+      prompt: prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt,
+      workingDirectory,
+      startedAt: new Date().toISOString()
+    });
+    
+    // Send system notification for task start
+    this.sendSystemNotificationForStart(taskId, prompt);
+  }
+
+  /**
+   * Send system notification for task start
+   * @param {string} taskId
+   * @param {string} prompt
+   */
+  sendSystemNotificationForStart(taskId, prompt) {
+    // Skip notifications if disabled
+    if (process.env.MCP_NOTIFICATIONS === 'false') {
+      return;
+    }
+
+    try {
+      const message = `Started: ${prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt}`;
+      
+      // macOS system notification
+      if (process.platform === 'darwin') {
+        // Escape quotes and special characters for AppleScript
+        const escapedMessage = message.replace(/"/g, '\\"').replace(/\n/g, ' ').replace(/\r/g, ' ');
+        const notificationScript = `display notification "${escapedMessage}" with title "Agent Task Started"`;
+        logger.debugLog(`Attempting to show start notification: ${escapedMessage}`);
+        
+        const notifProcess = spawn('osascript', ['-e', notificationScript], { stdio: 'pipe' });
+        notifProcess.on('error', (err) => {
+          logger.debugLog(`Start notification error: ${err.message}`);
+        });
+        
+        // Play a subtle start sound
+        spawn('afplay', ['/System/Library/Sounds/Tink.aiff'], { stdio: 'ignore' });
+      }
+      
+      logger.debugLog(`Sent start notification for task ${taskId}`);
+    } catch (error) {
+      logger.debugLog(`Failed to send start notification: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Send MCP notification to client
+   * @param {string} method
+   * @param {any} params
    */
   sendMcpNotification(method, params) {
     if (!this.server) {
@@ -221,6 +277,8 @@ export class TaskService {
 
   /**
    * Send system notification when task completes
+   * @param {string} taskId
+   * @param {string} status
    */
   sendNotification(taskId, status) {
     // Skip notifications if disabled
@@ -267,7 +325,7 @@ export class TaskService {
       if (process.platform === 'darwin') {
         // Escape quotes and special characters for AppleScript
         const escapedMessage = message.replace(/"/g, '\\"').replace(/\n/g, ' ').replace(/\r/g, ' ');
-        const notificationScript = `display notification "${escapedMessage}" with title "Claude Agent"`;
+        const notificationScript = `display notification "${escapedMessage}" with title "Agent Task Completed"`;
         logger.debugLog(`Attempting to show notification: ${escapedMessage}`);
         
         const notifProcess = spawn('osascript', ['-e', notificationScript], { stdio: 'pipe' });
@@ -308,6 +366,7 @@ export class TaskService {
 
   /**
    * Shutdown due to parent process exit - notify about each task
+   * @param {string} reason
    */
   shutdownDueToParentExit(reason) {
     logger.info(`Shutting down due to parent exit: ${reason}`);
