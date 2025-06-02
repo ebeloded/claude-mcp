@@ -3,7 +3,7 @@
  * Exports all available tools for the MCP server
  */
 
-import { taskTool } from "./task.js";
+import { startTool } from "./start.js";
 import { continueTool } from "./continue.js";
 import { statusTool } from "./status.js";
 import { cancelTool } from "./cancel.js";
@@ -12,7 +12,7 @@ import { cancelTool } from "./cancel.js";
  * All available MCP tools
  */
 export const tools = [
-  taskTool,
+  startTool,
   continueTool,
   statusTool,
   cancelTool

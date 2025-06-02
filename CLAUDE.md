@@ -42,14 +42,12 @@ This is an MCP (Model Context Protocol) server that bridges AI tools with Claude
 
 ### MCP Tools Architecture
 
-The server provides 6 tools following conversation branching model:
+The server provides 4 tools following conversation branching model:
 
-1. **ask** - Synchronous execution, returns clean text + Response ID
-2. **ask_async** - Starts background task, returns task ID immediately
-3. **resume** - Continue conversation synchronously with previous response ID
-4. **resume_async** - Continue conversation asynchronously with previous response ID
-5. **ask_status** - Polls task progress and results
-6. **ask_cancel** - Terminates running tasks
+1. **start** - Fresh conversations (sync/async), returns clean text + Response ID or task ID
+2. **continue** - Continue conversation (sync/async) with previous response ID
+3. **status** - Polls task progress and results
+4. **cancel** - Terminates running tasks
 
 ### Conversation Continuity
 

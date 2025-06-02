@@ -56,10 +56,17 @@ export function validateTaskId(taskId) {
 }
 
 /**
- * Validate prompt input
+ * Validate message input
+ */
+export function validateMessage(message) {
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    throw new ValidationError('Message must be a non-empty string');
+  }
+}
+
+/**
+ * Validate prompt input (deprecated, use validateMessage)
  */
 export function validatePrompt(prompt) {
-  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-    throw new ValidationError('Prompt must be a non-empty string');
-  }
+  return validateMessage(prompt);
 }

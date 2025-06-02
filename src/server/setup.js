@@ -23,7 +23,7 @@ export class McpServerSetup {
     // Create an MCP server
     this.server = new McpServer({
       name: "Claude Code MCP Server",
-      version: "2.0.0",
+      version: "2.3.0",
     });
 
     // Initialize services
@@ -107,7 +107,7 @@ export class McpServerSetup {
     return {
       server: {
         name: "Claude Code MCP Server",
-        version: "2.0.0"
+        version: "2.3.0"
       },
       tasks: this.taskService ? this.taskService.getStats() : null
     };

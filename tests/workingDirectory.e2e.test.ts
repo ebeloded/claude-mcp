@@ -39,10 +39,11 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with absolute path
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'List the files in the current directory using the ls command.',
-        workingDirectory: TEST_DIR
+        message: 'List the files in the current directory using the ls command.',
+        workingDirectory: TEST_DIR,
+        async: false
       } 
     });
     
@@ -79,9 +80,9 @@ describe('Working Directory Support (E2E)', () => {
 
     // Start async task with working directory
     const asyncResult = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'List the files in the current directory.',
+        message: 'List the files in the current directory.',
         workingDirectory: SUB_DIR,
         async: true
       } 
@@ -133,10 +134,11 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with relative path
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 2 + 2?',
-        workingDirectory: './tests' // relative to project root
+        message: 'What is 2 + 2?',
+        workingDirectory: './tests', // relative to project root
+        async: false
       } 
     });
     
@@ -167,10 +169,11 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test with non-existent directory
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 2 + 2?',
-        workingDirectory: '/path/that/does/not/exist'
+        message: 'What is 2 + 2?',
+        workingDirectory: '/path/that/does/not/exist',
+        async: false
       } 
     });
     
@@ -198,9 +201,10 @@ describe('Working Directory Support (E2E)', () => {
 
     // Test without workingDirectory parameter (should use current directory)
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 2 + 2? Just respond with the number.'
+        message: 'What is 2 + 2? Just respond with the number.',
+        async: false
       } 
     });
     
@@ -231,10 +235,11 @@ describe('Working Directory Support (E2E)', () => {
 
     // First call in one directory
     const firstResult = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'Remember the number 42. Just say "remembered 42".',
-        workingDirectory: TEST_DIR
+        message: 'Remember the number 42. Just say "remembered 42".',
+        workingDirectory: TEST_DIR,
+        async: false
       } 
     });
     
@@ -253,8 +258,9 @@ describe('Working Directory Support (E2E)', () => {
       const secondResult = await client.callTool({ 
         name: 'continue', 
         arguments: { 
-          prompt: 'What number did I ask you to remember?',
-          previousResponseId: responseId
+          message: 'What number did I ask you to remember?',
+          previousResponseId: responseId,
+          async: false
         } 
       });
       

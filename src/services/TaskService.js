@@ -29,11 +29,11 @@ export class TaskService {
   /**
    * Create a new task
    */
-  createTask(prompt, previousResponseId = null, workingDirectory = null) {
+  createTask(message, previousResponseId = null, workingDirectory = null) {
     const taskId = randomUUID();
     const task = {
       id: taskId,
-      prompt,
+      message,
       previousResponseId,
       workingDirectory,
       status: 'pending',
@@ -50,7 +50,7 @@ export class TaskService {
     // Send MCP notification for task creation
     this.sendMcpNotification('task/created', {
       taskId,
-      prompt,
+      message,
       previousResponseId,
       workingDirectory,
       createdAt: task.createdAt.toISOString()
@@ -196,39 +196,39 @@ export class TaskService {
   /**
    * Send task started notification
    */
-  sendTaskStartedNotification(taskId, prompt, workingDirectory) {
+  sendTaskStartedNotification(taskId, message, workingDirectory) {
     logger.debugLog(`Sending task started notification for ${taskId}`);
     
     // Send MCP notification (even though it's not supported, for logging)
     this.sendMcpNotification('task/started', {
       taskId,
-      prompt: prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt,
+      message: message.length > 100 ? message.substring(0, 100) + '...' : message,
       workingDirectory,
       startedAt: new Date().toISOString()
     });
     
     // Send system notification for task start
-    this.sendSystemNotificationForStart(taskId, prompt);
+    this.sendSystemNotificationForStart(taskId, message);
   }
 
   /**
    * Send system notification for task start
    * @param {string} taskId
-   * @param {string} prompt
+   * @param {string} message
    */
-  sendSystemNotificationForStart(taskId, prompt) {
+  sendSystemNotificationForStart(taskId, message) {
     // Skip notifications if disabled
     if (process.env.MCP_NOTIFICATIONS === 'false') {
       return;
     }
 
     try {
-      const message = `Started: ${prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt}`;
+      const notificationMessage = `Started: ${message.length > 50 ? message.substring(0, 50) + '...' : message}`;
       
       // macOS system notification
       if (process.platform === 'darwin') {
         // Escape quotes and special characters for AppleScript
-        const escapedMessage = message.replace(/"/g, '\\"').replace(/\n/g, ' ').replace(/\r/g, ' ');
+        const escapedMessage = notificationMessage.replace(/"/g, '\\"').replace(/\n/g, ' ').replace(/\r/g, ' ');
         const notificationScript = `display notification "${escapedMessage}" with title "Agent Task Started"`;
         logger.debugLog(`Attempting to show start notification: ${escapedMessage}`);
         

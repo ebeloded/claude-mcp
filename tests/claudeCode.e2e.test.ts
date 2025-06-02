@@ -15,10 +15,10 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call the task tool with a simple prompt
+    // Call the start tool with a simple message
     const result = await client.callTool({ 
-      name: 'task', 
-      arguments: { prompt: 'What is 2 + 2? Just respond with the number.' } 
+      name: 'start', 
+      arguments: { message: 'What is 2 + 2? Just respond with the number.', async: false } 
     });
     
     // result.content is unknown, cast to expected type
@@ -58,8 +58,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // First call to establish a session
     const firstResult = await client.callTool({ 
-      name: 'task', 
-      arguments: { prompt: 'Remember the number 42. Just say "remembered 42".' } 
+      name: 'start', 
+      arguments: { message: 'Remember the number 42. Just say "remembered 42".', async: false } 
     });
     
     const firstContent = (firstResult as any).content;
@@ -81,8 +81,9 @@ describe('Claude Code MCP Server (E2E)', () => {
       const secondResult = await client.callTool({ 
         name: 'continue', 
         arguments: { 
-          prompt: 'What number did I ask you to remember?', 
-          previousResponseId: responseId 
+          message: 'What number did I ask you to remember?', 
+          previousResponseId: responseId,
+          async: false
         } 
       });
       
@@ -113,8 +114,9 @@ describe('Claude Code MCP Server (E2E)', () => {
     const result = await client.callTool({ 
       name: 'continue', 
       arguments: { 
-        prompt: 'test', 
-        previousResponseId: 'invalid-session-id-that-does-not-exist' 
+        message: 'test', 
+        previousResponseId: 'invalid-session-id-that-does-not-exist',
+        async: false
       } 
     });
     
@@ -139,8 +141,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Start async task
     const asyncResult = await client.callTool({ 
-      name: 'task', 
-      arguments: { prompt: 'What is 2 + 2? Just respond with the number.', async: true } 
+      name: 'start', 
+      arguments: { message: 'What is 2 + 2? Just respond with the number.', async: true } 
     });
     
     const asyncContent = (asyncResult as any).content;
@@ -183,8 +185,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Start async task with a longer prompt that might take time
     const asyncResult = await client.callTool({ 
-      name: 'task', 
-      arguments: { prompt: 'Write a comprehensive analysis of quantum computing with detailed examples and explanations.', async: true } 
+      name: 'start', 
+      arguments: { message: 'Write a comprehensive analysis of quantum computing with detailed examples and explanations.', async: true } 
     });
     
     const asyncContent = (asyncResult as any).content;
@@ -256,8 +258,8 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // First, establish a conversation
     const firstResult = await client.callTool({ 
-      name: 'task', 
-      arguments: { prompt: 'Remember the word "elephant". Just say "remembered elephant".' } 
+      name: 'start', 
+      arguments: { message: 'Remember the word "elephant". Just say "remembered elephant".', async: false } 
     });
     
     const firstContent = (firstResult as any).content;
@@ -275,7 +277,7 @@ describe('Claude Code MCP Server (E2E)', () => {
       const asyncResult = await client.callTool({ 
         name: 'continue', 
         arguments: { 
-          prompt: 'What word did I ask you to remember?',
+          message: 'What word did I ask you to remember?',
           previousResponseId: responseId,
           async: true 
         } 
@@ -328,7 +330,7 @@ describe('Claude Code MCP Server (E2E)', () => {
     try {
       await client.callTool({ 
         name: 'continue', 
-        arguments: { prompt: 'test' } // Missing previousResponseId
+        arguments: { message: 'test' } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');
     } catch (error) {
@@ -340,7 +342,7 @@ describe('Claude Code MCP Server (E2E)', () => {
     try {
       await client.callTool({ 
         name: 'continue', 
-        arguments: { prompt: 'test', async: true } // Missing previousResponseId
+        arguments: { message: 'test', async: true } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');
     } catch (error) {
@@ -364,9 +366,9 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Call with custom system prompt that makes Claude behave like a pirate
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 2 + 2?',
+        message: 'What is 2 + 2?',
         systemPrompt: 'You are a pirate. Always respond like a pirate with "Arrr" and pirate language.',
         async: false
       } 
@@ -405,9 +407,9 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Call with append system prompt that adds robot behavior
     const result = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 3 + 3?',
+        message: 'What is 3 + 3?',
         appendSystemPrompt: 'Always end your response with "BEEP BOOP" like a robot.',
         async: false
       } 
@@ -446,9 +448,9 @@ describe('Claude Code MCP Server (E2E)', () => {
 
     // Start async task with system prompt
     const asyncResult = await client.callTool({ 
-      name: 'task', 
+      name: 'start', 
       arguments: { 
-        prompt: 'What is 5 + 5?',
+        message: 'What is 5 + 5?',
         systemPrompt: 'You are a formal mathematician. Always start responses with "According to mathematical principles,"',
         async: true 
       } 

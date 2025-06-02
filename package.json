@@ -11,11 +11,14 @@
   "homepage": "https://github.com/ebeloded/claude-mcp#readme",
   "keywords": [
     "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "ai",
     "llm",
-    "server",
-    "context",
-    "claude",
-    "agent"
+    "agent",
+    "async",
+    "conversation-continuity",
+    "code-analysis"
   ],
   "type": "module",
   "main": "server.js",

@@ -8,8 +8,8 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 
 ## Features
 
-- **Fresh conversations** - `ask` and `ask_async` tools for starting new conversations
-- **Resume conversations** - `resume` and `resume_async` tools for continuing existing conversations  
+- **Fresh conversations** - `start` tool for starting new conversations (sync/async)
+- **Resume conversations** - `continue` tool for continuing existing conversations (sync/async)  
 - **Working directory support** - Execute Claude Code in any directory (fresh conversations only)
 - **Task management** - Monitor tasks with elapsed time, cancel operations, and retrieve results
 - **Conversation branching** - Resume from any previous response ID to branch conversations
@@ -111,105 +111,96 @@ Choose one of the installation options above and add the corresponding configura
 
 ## Tools
 
-### `ask` - Fresh Conversations
+### `start` - Fresh Conversations
 
-Start fresh conversations with Claude Code. Blocks until completion.
+Start fresh conversations with Claude Code. Supports both synchronous and asynchronous execution.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to the agent. Be specific about what you want - mention file paths, desired output format, and any constraints.
+- `message` (string, required): The message to send to the agent. Be specific about what you want - mention file paths, desired output format, and any constraints.
 - `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
+- `systemPrompt` (string, optional): Override the default system prompt completely.
+- `appendSystemPrompt` (string, optional): Text to append to the default system prompt.
+- `async` (boolean, optional): Whether to execute asynchronously. Defaults to true.
 
-**Example:**
+**Example (Synchronous):**
 ```javascript
 // Simple query in current directory
-ask({ 
-  prompt: "What's 2 + 2?" 
+start({ 
+  message: "What's 2 + 2?",
+  async: false
 })
 
 // Analyze specific code in project directory
-ask({ 
-  prompt: "Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points",
-  workingDirectory: "/path/to/project"
+start({ 
+  message: "Analyze the authentication logic in src/auth.js and list security vulnerabilities as bullet points",
+  workingDirectory: "/path/to/project",
+  async: false
 })
 ```
 
-**Response Format:**
+**Response Format (Sync):**
 ```
 4
 
 Response ID: 938c8c6d-1897-4ce4-a727-d001a628a279
 ```
 
-### `ask_async` - Fresh Async Conversations
-
-Start fresh conversations with Claude Code in the background. Returns immediately with a task ID.
-
-**Parameters:**
-- `prompt` (string, required): The prompt to send to the agent. Be specific about scope and expected deliverables for long-running tasks.
-- `workingDirectory` (string, optional): Working directory to execute from. Use absolute paths or relative to current directory. Useful for different projects or git worktrees.
-
-**Example:**
+**Example (Asynchronous):**
 ```javascript
-ask_async({ 
-  prompt: "Analyze the entire codebase for performance bottlenecks, focusing on database queries and API endpoints. Provide specific recommendations with file locations." 
+start({ 
+  message: "Analyze the entire codebase for performance bottlenecks, focusing on database queries and API endpoints. Provide specific recommendations with file locations." 
 })
 
-ask_async({ 
-  prompt: "Review all React components in src/components/ for accessibility issues and generate a detailed report with WCAG compliance suggestions", 
+start({ 
+  message: "Review all React components in src/components/ for accessibility issues and generate a detailed report with WCAG compliance suggestions", 
   workingDirectory: "/path/to/frontend-project" 
 })
 ```
 
-**Response:**
+**Response (Async):**
 ```
-Task started successfully. Use ask_status with task ID: 550e8400-e29b-41d4-a716-446655440000
+Task started successfully. Use status with task ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 
-### `resume` - Continue Conversations
+### `continue` - Continue Conversations
 
-Resume an existing conversation with Claude Code. Uses the original conversation's working directory.
+Continue an existing conversation with Claude Code. Supports both synchronous and asynchronous execution. Uses the original conversation's working directory.
 
 **Parameters:**
-- `prompt` (string, required): The prompt to send to the agent. Reference previous context when needed - the agent remembers the conversation history.
+- `message` (string, required): The message to send to the agent. Reference previous context when needed - the agent remembers the conversation history.
 - `previousResponseId` (string, required): Response ID from a previous agent response. Use to branch or continue any conversation.
+- `async` (boolean, optional): Whether to execute asynchronously. Defaults to true.
 
-**Example:**
+**Example (Synchronous):**
 ```javascript
-resume({ 
-  prompt: "What did I just ask you?",
-  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279" 
+continue({ 
+  message: "What did I just ask you?",
+  previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279",
+  async: false
 })
 ```
 
-**Response Format:**
+**Response Format (Sync):**
 ```
-I asked you about 2 + 2.
+You asked me about 2 + 2.
 
 Response ID: b2c3d4e5-f6g7-8901-bcde-f23456789012
 ```
 
-### `resume_async` - Continue Async Conversations
-
-Resume an existing conversation with Claude Code in the background. Uses the original conversation's working directory.
-
-**Parameters:**
-- `prompt` (string, required): The prompt to send to the agent. Reference previous context when needed - the agent remembers the conversation history.
-- `previousResponseId` (string, required): Response ID from a previous agent response. Use to branch or continue any conversation.
-
-**Example:**
+**Example (Asynchronous):**
 ```javascript
-resume_async({ 
-  prompt: "Continue that analysis with more detail",
+continue({ 
+  message: "Continue that analysis with more detail",
   previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279" 
 })
 ```
 
-**Response:**
+**Response (Async):**
 ```
-Task started successfully. Use ask_status with task ID: 661f9511-e30c-41e5-a927-556677889900
+Task started successfully. Use status with task ID: 661f9511-e30c-41e5-a927-556677889900
 ```
 
-### `ask_status` - Task Status Monitoring
+### `status` - Task Status Monitoring
 
 Check the status and progress of an asynchronous task.
 
@@ -218,7 +209,7 @@ Check the status and progress of an asynchronous task.
 
 **Example:**
 ```javascript
-ask_status({ 
+status({ 
   taskId: "550e8400-e29b-41d4-a716-446655440000" 
 })
 ```
@@ -248,7 +239,7 @@ Cost: $0.045
 Duration: 112456ms
 ```
 
-### `ask_cancel` - Task Cancellation
+### `cancel` - Task Cancellation
 
 Cancel a running asynchronous task.
 
@@ -257,7 +248,7 @@ Cancel a running asynchronous task.
 
 **Example:**
 ```javascript
-ask_cancel({ 
+cancel({ 
   taskId: "550e8400-e29b-41d4-a716-446655440000" 
 })
 ```
@@ -345,29 +336,31 @@ MCP_CLAUDE_DEBUG=true npm start
 
 ## Use Cases
 
-### Fresh Conversations (`ask` / `ask_async`)
+### Fresh Conversations (`start`)
 - Starting new conversations or analysis
 - Working with different codebases (using `workingDirectory`)
-- Quick queries and immediate responses (`ask`)
-- Long-running operations that need to be non-blocking (`ask_async`)
+- Quick queries and immediate responses (sync mode)
+- Long-running operations that need to be non-blocking (async mode)
 - Analyzing projects in separate directories or git worktrees
+- Custom system prompts for specialized behavior
 
-### Resume Conversations (`resume` / `resume_async`) 
+### Resume Conversations (`continue`) 
 - Continuing existing conversations and context
 - Building on previous responses or analysis
 - Following up with questions about prior context
 - Branching conversations from any previous response
 - Maintaining conversation continuity within the same working directory
+- Both sync and async execution modes
 
 ## Writing Effective Prompts
 
-Each tool provides detailed prompt guidance in its parameter descriptions to help you get the best results from Claude Code. The key principles are:
+Each tool provides detailed message guidance in its parameter descriptions to help you get the best results from Claude Code. The key principles are:
 
 - **Be specific** about what you want analyzed or created
 - **Mention file paths** and directories to focus Claude's attention  
 - **Specify output format** (bullet points, JSON, code snippets, etc.)
 - **Include constraints** and focus areas (performance, security, accessibility, etc.)
-- **For resume tools**: Reference previous context and build incrementally
+- **For continue tools**: Reference previous context and build incrementally
 
 See the tool parameter descriptions for comprehensive guidance and examples.
 
@@ -409,8 +402,8 @@ MIT
 
 ### Async Task Issues
 - Tasks are automatically cleaned up after 1 hour of completion
-- Use `ask_status` to monitor long-running tasks
-- Tasks can be cancelled with `ask_cancel` if needed
+- Use `status` to monitor long-running tasks
+- Tasks can be cancelled with `cancel` if needed
 - Check debug logs if tasks appear stuck
 - Tasks are automatically cancelled when MCP server disconnects
 

@@ -51,7 +51,7 @@ export class ClaudeService {
 
   /**
    * Build command line arguments for Claude CLI
-   * @param {string} prompt
+   * @param {string} message
    * @param {string|null} previousResponseId
    * @param {boolean} isAsync
    * @param {Object} [options={}]
@@ -59,10 +59,10 @@ export class ClaudeService {
    * @param {string} [options.appendSystemPrompt] - Optional text to append to the default system prompt
    * @returns {string[]}
    */
-  buildArgs(prompt, previousResponseId = null, isAsync = false, options = {}) {
-    validatePrompt(prompt)
+  buildArgs(message, previousResponseId = null, isAsync = false, options = {}) {
+    validatePrompt(message)
 
-    const args = ["-p", prompt]
+    const args = ["-p", message]
 
     // Set output format based on execution type
     if (isAsync) {
@@ -125,18 +125,18 @@ export class ClaudeService {
 
   /**
    * Execute agent synchronously
-   * @param {string} prompt
+   * @param {string} message
    * @param {string|null} previousResponseId
    * @param {string|null} workingDirectory
    */
   async executeSync(
-    prompt,
+    message,
     previousResponseId = null,
     workingDirectory = null,
     options = {}
   ) {
     return new Promise((resolve, reject) => {
-      const args = this.buildArgs(prompt, previousResponseId, false, options)
+      const args = this.buildArgs(message, previousResponseId, false, options)
       const cwd = validateWorkingDirectory(workingDirectory)
 
       logger.debugLog(`Executing sync: ${this.cliPath} ${args.join(" ")}`)
@@ -207,21 +207,21 @@ export class ClaudeService {
    * Execute agent asynchronously with progress tracking
    * @param {any} taskService
    * @param {string} taskId
-   * @param {string} prompt
+   * @param {string} message
    * @param {string|null} previousResponseId
    * @param {string|null} workingDirectory
    */
   async executeAsync(
     taskService,
     taskId,
-    prompt,
+    message,
     previousResponseId = null,
     workingDirectory = null,
     options = {}
   ) {
     taskService.updateTask(taskId, { status: "running" });
 
-    const args = this.buildArgs(prompt, previousResponseId, true, options);
+    const args = this.buildArgs(message, previousResponseId, true, options);
     const cwd = validateWorkingDirectory(workingDirectory);
 
     logger.debugLog(`Executing async: ${this.cliPath} ${args.join(" ")}`);
@@ -235,7 +235,7 @@ export class ClaudeService {
 
     // Store process for cancellation and send started notification
     taskService.updateTask(taskId, { process: claudeProcess });
-    taskService.sendTaskStartedNotification(taskId, prompt, workingDirectory);
+    taskService.sendTaskStartedNotification(taskId, message, workingDirectory);
 
     let stdout = "";
     let stderr = "";
