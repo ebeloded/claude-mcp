@@ -45,7 +45,7 @@ This is an MCP (Model Context Protocol) server that bridges AI tools with Claude
 The server provides 4 tools following conversation branching model:
 
 1. **start** - Fresh conversations (sync/async), returns clean text + Response ID or task ID
-2. **continue** - Continue conversation (sync/async) with previous response ID
+2. **resume** - Continue conversation (sync/async) with previous response ID
 3. **status** - Polls task progress and results
 4. **cancel** - Terminates running tasks
 

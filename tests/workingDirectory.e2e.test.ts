@@ -254,9 +254,9 @@ describe('Working Directory Support (E2E)', () => {
       
       expect(responseId).toBeDefined();
 
-      // Second call using continue tool (no workingDirectory parameter - uses original conversation's directory)
+      // Second call using resume tool (no workingDirectory parameter - uses original conversation's directory)
       const secondResult = await client.callTool({ 
-        name: 'continue', 
+        name: 'resume', 
         arguments: { 
           message: 'What number did I ask you to remember?',
           previousResponseId: responseId,

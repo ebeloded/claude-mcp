@@ -77,9 +77,9 @@ describe('Claude Code MCP Server (E2E)', () => {
       
       expect(responseId).toBeDefined();
 
-      // Second call with session resumption using the continue tool
+      // Second call with session resumption using the resume tool
       const secondResult = await client.callTool({ 
-        name: 'continue', 
+        name: 'resume', 
         arguments: { 
           message: 'What number did I ask you to remember?', 
           previousResponseId: responseId,
@@ -110,9 +110,9 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Call with invalid session ID to trigger an error using continue tool
+    // Call with invalid session ID to trigger an error using resume tool
     const result = await client.callTool({ 
-      name: 'continue', 
+      name: 'resume', 
       arguments: { 
         message: 'test', 
         previousResponseId: 'invalid-session-id-that-does-not-exist',
@@ -275,7 +275,7 @@ describe('Claude Code MCP Server (E2E)', () => {
 
       // Now resume with async task
       const asyncResult = await client.callTool({ 
-        name: 'continue', 
+        name: 'resume', 
         arguments: { 
           message: 'What word did I ask you to remember?',
           previousResponseId: responseId,
@@ -326,10 +326,10 @@ describe('Claude Code MCP Server (E2E)', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(transport);
 
-    // Test that continue tool fails without previousResponseId
+    // Test that resume tool fails without previousResponseId
     try {
       await client.callTool({ 
-        name: 'continue', 
+        name: 'resume', 
         arguments: { message: 'test' } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');
@@ -338,10 +338,10 @@ describe('Claude Code MCP Server (E2E)', () => {
       expect(error).toBeDefined();
     }
 
-    // Test that continue tool with async fails without previousResponseId
+    // Test that resume tool with async fails without previousResponseId
     try {
       await client.callTool({ 
-        name: 'continue', 
+        name: 'resume', 
         arguments: { message: 'test', async: true } // Missing previousResponseId
       });
       expect.fail('Should have thrown an error for missing previousResponseId');

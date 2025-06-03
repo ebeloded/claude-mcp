@@ -9,7 +9,7 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 ## Features
 
 - **Fresh conversations** - `start` tool for starting new conversations (sync/async)
-- **Resume conversations** - `continue` tool for continuing existing conversations (sync/async)  
+- **Resume conversations** - `resume` tool for continuing existing conversations (sync/async)  
 - **Working directory support** - Execute Claude Code in any directory (fresh conversations only)
 - **Task management** - Monitor tasks with elapsed time, cancel operations, and retrieve results
 - **Conversation branching** - Resume from any previous response ID to branch conversations
@@ -30,25 +30,7 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 
 ## Installation & Setup
 
-### Option 1: NPM Global Install (Recommended)
-
-```bash
-npm install -g claude-mcp
-```
-
-Then use in your MCP config:
-
-```json
-{
-  "mcpServers": {
-    "claude": {
-      "command": "claude-mcp"
-    }
-  }
-}
-```
-
-### Option 2: NPX (No Installation)
+### Option 1: NPX (No Installation)
 
 Use directly with npx:
 
@@ -63,7 +45,7 @@ Use directly with npx:
 }
 ```
 
-### Option 3: Local Development
+### Option 2: Local Development
 
 1. **Clone and install:**
    ```bash
@@ -86,7 +68,7 @@ Use directly with npx:
 
 ### First-time Claude Code Setup
 
-**Important:** Before using any option above, run Claude Code once to accept permissions:
+**Important:** Before using the setup above, run Claude Code once to accept permissions:
 
 ```bash
 claude --dangerously-skip-permissions
@@ -98,7 +80,7 @@ Accept the terms when prompted (one-time requirement).
 
 ### MCP Client Configuration
 
-Choose one of the installation options above and add the corresponding configuration to your MCP configuration file:
+Add the configuration to your MCP configuration file:
 
 - **Cursor:** `~/.cursor/mcp.json`
 - **Windsurf:** `~/.codeium/windsurf/mcp_config.json`
@@ -162,7 +144,7 @@ start({
 Task started successfully. Use status with task ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 
-### `continue` - Continue Conversations
+### `resume` - Continue Conversations
 
 Continue an existing conversation with Claude Code. Supports both synchronous and asynchronous execution. Uses the original conversation's working directory.
 
@@ -173,7 +155,7 @@ Continue an existing conversation with Claude Code. Supports both synchronous an
 
 **Example (Synchronous):**
 ```javascript
-continue({ 
+resume({ 
   message: "What did I just ask you?",
   previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279",
   async: false
@@ -189,7 +171,7 @@ Response ID: b2c3d4e5-f6g7-8901-bcde-f23456789012
 
 **Example (Asynchronous):**
 ```javascript
-continue({ 
+resume({ 
   message: "Continue that analysis with more detail",
   previousResponseId: "938c8c6d-1897-4ce4-a727-d001a628a279" 
 })
@@ -344,7 +326,7 @@ MCP_CLAUDE_DEBUG=true npm start
 - Analyzing projects in separate directories or git worktrees
 - Custom system prompts for specialized behavior
 
-### Resume Conversations (`continue`) 
+### Resume Conversations (`resume`) 
 - Continuing existing conversations and context
 - Building on previous responses or analysis
 - Following up with questions about prior context
@@ -360,7 +342,7 @@ Each tool provides detailed message guidance in its parameter descriptions to he
 - **Mention file paths** and directories to focus Claude's attention  
 - **Specify output format** (bullet points, JSON, code snippets, etc.)
 - **Include constraints** and focus areas (performance, security, accessibility, etc.)
-- **For continue tools**: Reference previous context and build incrementally
+- **For resume tools**: Reference previous context and build incrementally
 
 See the tool parameter descriptions for comprehensive guidance and examples.
 

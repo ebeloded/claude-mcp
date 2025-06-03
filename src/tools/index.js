@@ -4,7 +4,7 @@
  */
 
 import { startTool } from "./start.js";
-import { continueTool } from "./continue.js";
+import { resumeTool } from "./resume.js";
 import { statusTool } from "./status.js";
 import { cancelTool } from "./cancel.js";
 
@@ -13,7 +13,7 @@ import { cancelTool } from "./cancel.js";
  */
 export const tools = [
   startTool,
-  continueTool,
+  resumeTool,
   statusTool,
   cancelTool
 ];
