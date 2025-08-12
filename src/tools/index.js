@@ -23,10 +23,21 @@ export const tools = [
  */
 export function registerTools(server, claudeService, taskService) {
   for (const tool of tools) {
-    server.tool(
-      tool.name,
-      tool.schema,
-      tool.handler(claudeService, taskService)
-    );
+    // Prefer signature with description to satisfy SDK requirements
+    if (tool.description) {
+      server.tool(
+        tool.name,
+        tool.description,
+        tool.schema,
+        tool.handler(claudeService, taskService)
+      );
+    } else {
+      // Fallback for backward compatibility
+      server.tool(
+        tool.name,
+        tool.schema,
+        tool.handler(claudeService, taskService)
+      );
+    }
   }
 }

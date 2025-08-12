@@ -7,6 +7,7 @@ import { validateTaskId } from "../utils/validation.js";
  */
 export const statusTool = {
   name: "status",
+  description: "Get the current status of a running or completed task by ID.",
   schema: {
     taskId: z.string().describe("The task ID to check status for"),
   },

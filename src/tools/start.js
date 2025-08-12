@@ -7,6 +7,7 @@ import { logger } from "../utils/logger.js"
  */
 export const startTool = {
   name: "start",
+  description: "Start a new agent run (sync or async). Optionally set working directory and append to the system prompt.",
   schema: {
     message: z
       .string()
