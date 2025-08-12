@@ -1,19 +1,20 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { TaskService } from "../services/TaskService.js";
-import { ClaudeService } from "../services/ClaudeService.js";
-import { registerTools } from "../tools/index.js";
-import { logger } from "../utils/logger.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
+import { TaskService } from "../services/TaskService.js"
+import { ClaudeService } from "../services/ClaudeService.js"
+import { registerTools } from "../tools/index.js"
+import { logger } from "../utils/logger.js"
+import { serverDisplayName, serverVersion } from "../utils/constants.js"
 
 /**
  * Server setup and configuration
  */
 export class McpServerSetup {
   constructor() {
-    this.server = null;
-    this.taskService = null;
-    this.claudeService = null;
-    this.transport = null;
+    this.server = null
+    this.taskService = null
+    this.claudeService = null
+    this.transport = null
   }
 
   /**
@@ -22,27 +23,27 @@ export class McpServerSetup {
   initialize() {
     // Create an MCP server
     this.server = new McpServer({
-      name: "Claude Code MCP Server",
-      version: "2.3.0",
-    });
+      name: serverDisplayName,
+      version: serverVersion,
+    })
 
     // Initialize services
-    this.taskService = new TaskService();
-    this.claudeService = new ClaudeService();
+    this.taskService = new TaskService()
+    this.claudeService = new ClaudeService()
 
     // Pass server instance to TaskService for notifications
-    this.taskService.setServer(this.server);
+    this.taskService.setServer(this.server)
 
     // Register all tools
-    registerTools(this.server, this.claudeService, this.taskService);
+    registerTools(this.server, this.claudeService, this.taskService)
 
     // Setup transport
-    this.transport = new StdioServerTransport();
+    this.transport = new StdioServerTransport()
 
     // Setup cleanup handlers
-    this.setupCleanupHandlers();
+    this.setupCleanupHandlers()
 
-    logger.info('MCP Server initialized successfully');
+    logger.info("MCP Server initialized successfully")
   }
 
   /**
@@ -50,34 +51,38 @@ export class McpServerSetup {
    */
   setupCleanupHandlers() {
     const cleanup = (signal) => {
-      logger.info(`Received ${signal}, cleaning up...`);
-      logger.info(`Active tasks: ${this.taskService ? this.taskService.getStats().active : 0}`);
+      logger.info(`Received ${signal}, cleaning up...`)
+      logger.info(
+        `Active tasks: ${
+          this.taskService ? this.taskService.getStats().active : 0
+        }`
+      )
       if (this.taskService) {
-        this.taskService.destroy();
+        this.taskService.destroy()
       }
-      process.exit(0);
-    };
+      process.exit(0)
+    }
 
     // Handle more signals and add debug logging
-    process.on('SIGINT', () => {
-      logger.info('SIGINT received');
-      cleanup('SIGINT');
-    });
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM received');
-      cleanup('SIGTERM');
-    });
-    process.on('SIGHUP', () => {
-      logger.info('SIGHUP received');
-      cleanup('SIGHUP');
-    });
-    
+    process.on("SIGINT", () => {
+      logger.info("SIGINT received")
+      cleanup("SIGINT")
+    })
+    process.on("SIGTERM", () => {
+      logger.info("SIGTERM received")
+      cleanup("SIGTERM")
+    })
+    process.on("SIGHUP", () => {
+      logger.info("SIGHUP received")
+      cleanup("SIGHUP")
+    })
+
     // Log when process is about to exit
-    process.on('exit', (code) => {
-      logger.info(`Process exiting with code: ${code}`);
-    });
-    
-    logger.info('Cleanup handlers registered for SIGINT, SIGTERM, SIGHUP');
+    process.on("exit", (code) => {
+      logger.info(`Process exiting with code: ${code}`)
+    })
+
+    logger.info("Cleanup handlers registered for SIGINT, SIGTERM, SIGHUP")
   }
 
   /**
@@ -85,18 +90,18 @@ export class McpServerSetup {
    */
   async start() {
     if (!this.server || !this.transport) {
-      throw new Error('Server not initialized. Call initialize() first.');
+      throw new Error("Server not initialized. Call initialize() first.")
     }
 
     try {
-      await this.server.connect(this.transport);
-      logger.info('MCP Server started successfully');
+      await this.server.connect(this.transport)
+      logger.info("MCP Server started successfully")
     } catch (error) {
-      logger.error('Failed to start MCP Server:', error);
+      logger.error("Failed to start MCP Server:", error)
       if (this.taskService) {
-        this.taskService.destroy();
+        this.taskService.destroy()
       }
-      throw error;
+      throw error
     }
   }
 
@@ -106,10 +111,10 @@ export class McpServerSetup {
   getStats() {
     return {
       server: {
-        name: "Claude Code MCP Server",
-        version: "2.3.0"
+        name: serverDisplayName,
+        version: serverVersion,
       },
-      tasks: this.taskService ? this.taskService.getStats() : null
-    };
+      tasks: this.taskService ? this.taskService.getStats() : null,
+    }
   }
 }

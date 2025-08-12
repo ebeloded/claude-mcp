@@ -337,6 +337,10 @@ npm test
 MCP_CLAUDE_DEBUG=true npm start
 ```
 
+### STDIO logging (important)
+
+This server communicates over STDIO. Do not write regular logs to stdout—doing so corrupts JSON-RPC. All logs go to stderr via the `logger` utility. See the MCP quickstart guidance on logging: https://modelcontextprotocol.io/quickstart/server.md
+
 ## Use Cases
 
 ### Fresh Conversations (`start`)
