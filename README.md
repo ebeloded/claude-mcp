@@ -22,6 +22,29 @@ This MCP server provides a bridge between AI tools and Claude Code, allowing oth
 - **System notifications** - macOS notifications for task start/completion with distinct sounds
 - **Process cleanup** - Automatic cleanup of orphaned processes when MCP server disconnects
 
+## Design Decisions
+
+This MCP server makes intentional design choices for clarity and practical use:
+
+### Response ID vs Session ID
+We use **"Response ID"** terminology instead of "Session ID" because:
+- Each conversation turn generates a new Response ID
+- You can branch conversations from any previous Response ID
+- The term "session" incorrectly implies a continuous session, when in reality each response is a new branching point
+
+### No `--continue` Flag Support
+We intentionally do **not** support Claude Code's `--continue` flag because:
+- With multiple agents running in parallel, "most recent conversation" is ambiguous
+- Each agent typically handles independent tasks
+- Use the `resume` tool with an explicit Response ID for precise conversation control
+
+### Permission Mode
+Currently uses `--dangerously-skip-permissions` which is functionally equivalent to `--permission-mode bypassPermissions`. This deprecated flag will be replaced with the modern permission-mode system in future versions, enabling:
+- `plan` mode for read-only code analysis
+- `acceptEdits` for auto-accepting file changes while confirming dangerous operations
+- `default` for standard interactive prompts
+- `bypassPermissions` for maintaining current behavior (all permissions granted)
+
 ## Prerequisites
 
 - Node.js 18+ runtime
